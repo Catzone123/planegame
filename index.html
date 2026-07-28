@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PIXEL RETRO FLIGHT</title>
+    <title>PIXEL DOGFIGHTER</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
         
@@ -43,11 +43,13 @@
             top: 24px;
             left: 24px;
             color: #ffffff;
-            font-size: 18px;
+            font-size: 16px;
             text-shadow: 2px 2px 0px #000000;
             pointer-events: none;
             z-index: 5;
             letter-spacing: 2px;
+            display: flex;
+            gap: 30px;
         }
 
         .screen {
@@ -111,12 +113,15 @@
 <body>
 
 <div id="gameContainer">
-    <div id="ui">SCORE: <span id="score">000000</span></div>
+    <div id="ui">
+        <div>SCORE: <span id="score">000000</span></div>
+        <div>HP: <span id="hp">3</span></div>
+    </div>
 
     <!-- Start Screen -->
     <div id="startScreen" class="screen">
-        <h1>2D PIXEL FLIGHT</h1>
-        <p>[W/S or UP/DOWN] TO FLY</p>
+        <h1>2D PIXEL DOGFIGHT</h1>
+        <p>[W/S or UP/DOWN] TO MOVE<br><br>[SPACEBAR] TO SHOOT</p>
         <button onclick="startGame()">PRESS START</button>
     </div>
 
@@ -136,17 +141,26 @@
 
     // UI Elements
     const scoreEl = document.getElementById('score');
+    const hpEl = document.getElementById('hp');
     const finalScoreEl = document.getElementById('finalScore');
     const startScreen = document.getElementById('startScreen');
     const gameOverScreen = document.getElementById('gameOverScreen');
 
     // Controls
-    const keys = { ArrowUp: false, ArrowDown: false, w: false, s: false };
+    const keys = { ArrowUp: false, ArrowDown: false, w: false, s: false, ' ': false };
 
-    window.addEventListener('keydown', (e) => { if (e.key in keys) keys[e.key] = true; });
-    window.addEventListener('keyup', (e) => { if (e.key in keys) keys[e.key] = false; });
+    window.addEventListener('keydown', (e) => { 
+        if (e.key in keys || e.key === ' ') {
+            keys[e.key] = true; 
+        }
+    });
+    window.addEventListener('keyup', (e) => { 
+        if (e.key in keys || e.key === ' ') {
+            keys[e.key] = false; 
+        }
+    });
 
-    // Internal Pixel Resolution for Pixel-Art Effect
+    // Internal Pixel Resolution
     const GAME_WIDTH = 480;
     const GAME_HEIGHT = 270;
 
@@ -159,29 +173,30 @@
     // Game State variables
     let gameRunning = false;
     let score = 0;
-    let speed = 2;
     let frameCount = 0;
+    let lastShootFrame = 0;
 
     // Entities
     let player = {
-        x: 60,
+        x: 40,
         y: GAME_HEIGHT / 2 - 10,
         width: 24,
         height: 12,
-        vy: 0,
-        speed: 2.5
+        speed: 2.5,
+        hp: 3
     };
 
-    let obstacles = [];
+    let playerBullets = [];
+    let enemies = [];
+    let enemyBullets = [];
     let clouds = [];
     let mountains = [];
 
-    // Background Layers Setup
+    // Background Setup
     function initBackground() {
         clouds = [];
         mountains = [];
 
-        // Generate Clouds
         for (let i = 0; i < 5; i++) {
             clouds.push({
                 x: Math.random() * GAME_WIDTH,
@@ -191,7 +206,6 @@
             });
         }
 
-        // Generate Mountains
         for (let i = 0; i < 7; i++) {
             mountains.push({
                 x: i * 80,
@@ -201,26 +215,32 @@
         }
     }
 
-    function spawnObstacle() {
-        const height = Math.floor(Math.random() * 20) + 16;
-        const y = Math.floor(Math.random() * (GAME_HEIGHT - 60 - height)) + 20;
-        obstacles.push({
+    function spawnEnemy() {
+        const y = Math.floor(Math.random() * (GAME_HEIGHT - 70)) + 20;
+        enemies.push({
             x: GAME_WIDTH,
             y: y,
-            width: 16,
-            height: height,
-            color: '#d69e2e' // Steel / Yellowish crate color
+            width: 22,
+            height: 12,
+            speed: 1.2 + Math.random() * 0.8,
+            hp: 2,
+            lastShot: frameCount
         });
     }
 
     function startGame() {
-        obstacles = [];
+        enemies = [];
+        playerBullets = [];
+        enemyBullets = [];
+        
         player.y = GAME_HEIGHT / 2 - 10;
-        player.vy = 0;
+        player.hp = 3;
         score = 0;
-        speed = 2;
         frameCount = 0;
+        lastShootFrame = 0;
+        
         scoreEl.textContent = '000000';
+        hpEl.textContent = player.hp;
 
         initBackground();
 
@@ -237,21 +257,39 @@
         gameOverScreen.style.display = 'flex';
     }
 
+    function isColliding(a, b) {
+        return (
+            a.x < b.x + b.width &&
+            a.x + a.width > b.x &&
+            a.y < b.y + b.height &&
+            a.y + a.height > b.y
+        );
+    }
+
     function update() {
         frameCount++;
-        score += 1;
         scoreEl.textContent = String(score).padStart(6, '0');
+        hpEl.textContent = player.hp;
 
-        // Increase speed gradually
-        speed = 2 + Math.floor(score / 500) * 0.5;
-
-        // Player movement
+        // Player Movement
         if (keys.ArrowUp || keys.w) player.y -= player.speed;
         if (keys.ArrowDown || keys.s) player.y += player.speed;
 
-        // Keep player in bounds
+        // Bound player inside sky area
         if (player.y < 10) player.y = 10;
-        if (player.y > GAME_HEIGHT - 35) player.y = GAME_HEIGHT - 35;
+        if (player.y > GAME_HEIGHT - 40) player.y = GAME_HEIGHT - 40;
+
+        // Player Shooting (Cooldown: 12 frames)
+        if (keys[' '] && frameCount - lastShootFrame > 12) {
+            playerBullets.push({
+                x: player.x + player.width,
+                y: player.y + player.height / 2 - 1,
+                width: 6,
+                height: 2,
+                speed: 5
+            });
+            lastShootFrame = frameCount;
+        }
 
         // Parallax Clouds
         clouds.forEach(c => {
@@ -264,59 +302,112 @@
 
         // Parallax Mountains
         mountains.forEach(m => {
-            m.x -= speed * 0.3;
+            m.x -= 0.6;
             if (m.x + m.width < 0) {
                 m.x = GAME_WIDTH;
                 m.height = 40 + Math.random() * 30;
             }
         });
 
-        // Spawn obstacles
-        if (frameCount % Math.max(30, 90 - Math.floor(speed * 5)) === 0) {
-            spawnObstacle();
+        // Spawn Enemy Planes
+        if (frameCount % Math.max(40, 120 - Math.floor(score / 100)) === 0) {
+            spawnEnemy();
         }
 
-        // Update obstacles & collision check
-        for (let i = obstacles.length - 1; i >= 0; i--) {
-            let obs = obstacles[i];
-            obs.x -= speed;
+        // Update Player Bullets
+        for (let i = playerBullets.length - 1; i >= 0; i--) {
+            let b = playerBullets[i];
+            b.x += b.speed;
 
-            // AABB Collision Detection
-            if (
-                player.x < obs.x + obs.width &&
-                player.x + player.width > obs.x &&
-                player.y < obs.y + obs.height &&
-                player.y + player.height > obs.y
-            ) {
-                endGame();
-                return;
+            if (b.x > GAME_WIDTH) {
+                playerBullets.splice(i, 1);
+                continue;
             }
 
-            // Remove off-screen obstacles
-            if (obs.x + obs.width < 0) {
-                obstacles.splice(i, 1);
+            // Check hit against enemy NPCs
+            for (let j = enemies.length - 1; j >= 0; j--) {
+                let e = enemies[j];
+                if (isColliding(b, e)) {
+                    e.hp--;
+                    playerBullets.splice(i, 1);
+
+                    if (e.hp <= 0) {
+                        enemies.splice(j, 1);
+                        score += 100;
+                    }
+                    break;
+                }
+            }
+        }
+
+        // Update Enemies & Enemy Bullets
+        for (let j = enemies.length - 1; j >= 0; j--) {
+            let e = enemies[j];
+            e.x -= e.speed;
+
+            // Enemy NPC Shooting AI (shoots every 90-120 frames)
+            if (frameCount - e.lastShot > 90 + Math.random() * 30 && e.x > player.x + 50) {
+                enemyBullets.push({
+                    x: e.x,
+                    y: e.y + e.height / 2 - 1,
+                    width: 5,
+                    height: 2,
+                    speed: 3.5
+                });
+                e.lastShot = frameCount;
+            }
+
+            // Player ramming enemy plane
+            if (isColliding(player, e)) {
+                player.hp--;
+                enemies.splice(j, 1);
+                if (player.hp <= 0) endGame();
+                continue;
+            }
+
+            // Remove off-screen enemies
+            if (e.x + e.width < 0) {
+                enemies.splice(j, 1);
+            }
+        }
+
+        // Update Enemy Bullets
+        for (let k = enemyBullets.length - 1; k >= 0; k--) {
+            let eb = enemyBullets[k];
+            eb.x -= eb.speed;
+
+            // Check hit on Player
+            if (isColliding(eb, player)) {
+                player.hp--;
+                enemyBullets.splice(k, 1);
+                if (player.hp <= 0) endGame();
+                continue;
+            }
+
+            if (eb.x < 0) {
+                enemyBullets.splice(k, 1);
             }
         }
     }
 
     function draw() {
-        // 1. Realistic Sky Gradient
+        // 1. Sky Gradient
         let skyGrad = ctx.createLinearGradient(0, 0, 0, GAME_HEIGHT);
-        skyGrad.addColorStop(0, '#63b3ed');   // Bright sky blue
-        skyGrad.addColorStop(0.7, '#ebf8ff'); // Soft horizon light
-        skyGrad.addColorStop(1, '#38a169');   // Ground green
+        skyGrad.addColorStop(0, '#63b3ed');
+        skyGrad.addColorStop(0.7, '#ebf8ff');
+        skyGrad.addColorStop(1, '#38a169');
         ctx.fillStyle = skyGrad;
         ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
-        // 2. Pixel Clouds
+        // 2. Clouds
         ctx.fillStyle = '#ffffff';
         clouds.forEach(c => {
             ctx.fillRect(Math.floor(c.x), Math.floor(c.y), c.width, 10);
             ctx.fillRect(Math.floor(c.x + 4), Math.floor(c.y - 4), c.width - 8, 6);
         });
 
-        // 3. Mountains (Background)
-        ctx.fillStyle = '#718096'; // Slate grey
+        // 3. Mountains
+        ctx.fillStyle = '#718096';
         mountains.forEach(m => {
             ctx.beginPath();
             ctx.moveTo(Math.floor(m.x), GAME_HEIGHT - 20);
@@ -325,48 +416,54 @@
             ctx.fill();
         });
 
-        // 4. Ground (Green Field & Brown Earth)
-        ctx.fillStyle = '#2f855a'; // Deep grass green
+        // 4. Ground
+        ctx.fillStyle = '#2f855a';
         ctx.fillRect(0, GAME_HEIGHT - 20, GAME_WIDTH, 6);
-        ctx.fillStyle = '#744210'; // Dirt brown
+        ctx.fillStyle = '#744210';
         ctx.fillRect(0, GAME_HEIGHT - 14, GAME_WIDTH, 14);
 
-        // 5. Draw Player Airplane (Red & White Prop Plane)
+        // 5. Draw Player Plane (Red)
         const px = Math.floor(player.x);
         const py = Math.floor(player.y);
 
-        // Fuselage (Red)
         ctx.fillStyle = '#e53e3e';
         ctx.fillRect(px, py + 4, 20, 5);
-
-        // Cockpit Window (Cyan glass)
         ctx.fillStyle = '#63b3ed';
         ctx.fillRect(px + 10, py + 2, 5, 3);
-
-        // Wings (White)
         ctx.fillStyle = '#edf2f7';
         ctx.fillRect(px + 8, py, 4, 12);
-
-        // Tail (Darker Red)
         ctx.fillStyle = '#9b2c2c';
         ctx.fillRect(px, py + 1, 4, 4);
 
-        // Propeller (Grey)
-        ctx.fillStyle = '#a0aec0';
-        ctx.fillRect(px + 21, py + 2, 1, 8);
+        // 6. Draw NPC Enemy Planes (Dark Gray/Green Camo)
+        enemies.forEach(e => {
+            const ex = Math.floor(e.x);
+            const ey = Math.floor(e.y);
 
-        // 6. Draw Obstacles (Wooden / Metal Crates)
-        obstacles.forEach(obs => {
-            const ox = Math.floor(obs.x);
-            const oy = Math.floor(obs.y);
+            // Fuselage
+            ctx.fillStyle = '#2d3748';
+            ctx.fillRect(ex, ey + 4, 20, 5);
+            // Cockpit
+            ctx.fillStyle = '#e53e3e';
+            ctx.fillRect(ex + 6, ey + 2, 4, 3);
+            // Wings
+            ctx.fillStyle = '#4a5568';
+            ctx.fillRect(ex + 10, ey, 4, 12);
+            // Tail
+            ctx.fillStyle = '#1a202c';
+            ctx.fillRect(ex + 18, ey + 1, 4, 4);
+        });
 
-            ctx.fillStyle = obs.color;
-            ctx.fillRect(ox, oy, obs.width, obs.height);
+        // 7. Draw Player Bullets (Bright Yellow/Red)
+        ctx.fillStyle = '#f6e05e';
+        playerBullets.forEach(b => {
+            ctx.fillRect(Math.floor(b.x), Math.floor(b.y), b.width, b.height);
+        });
 
-            // Darker border for 2D depth
-            ctx.strokeStyle = '#744210';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(ox + 0.5, oy + 0.5, obs.width - 1, obs.height - 1);
+        // 8. Draw Enemy Bullets (Orange/Red)
+        ctx.fillStyle = '#dd6b20';
+        enemyBullets.forEach(eb => {
+            ctx.fillRect(Math.floor(eb.x), Math.floor(eb.y), eb.width, eb.height);
         });
     }
 
