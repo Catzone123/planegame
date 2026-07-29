@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reyansh's Minecraft Plane Game - Ultimate Edition</title>
+    <title>Reyansh's Minecraft Plane Game - Heavy Payload Edition</title>
     <style>
         * {
             margin: 0;
@@ -22,7 +22,7 @@
             display: block;
         }
 
-        /* HUD Overlay */
+        /* --- HUD OVERLAY --- */
         #hud {
             position: absolute;
             top: 15px;
@@ -30,13 +30,14 @@
             right: 15px;
             pointer-events: none;
             color: #ffffff;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: bold;
             text-shadow: 2px 2px 0px #000;
+            display: none;
         }
 
         .hud-panel {
-            background: rgba(0, 0, 0, 0.65);
+            background: rgba(0, 0, 0, 0.7);
             border: 3px solid #3c3c3c;
             padding: 8px 14px;
             display: flex;
@@ -49,10 +50,9 @@
             color: #ffeb3b;
         }
 
-        /* Interactive Engine Button */
-        #engine-btn {
+        .hud-btn {
             pointer-events: auto;
-            background: #ff3333;
+            background: #444;
             color: white;
             border: 2px solid #fff;
             padding: 4px 10px;
@@ -63,22 +63,27 @@
             text-shadow: 1px 1px 0 #000;
         }
 
+        .hud-btn:hover {
+            background: #666;
+        }
+
         #engine-btn.active {
             background: #4caf50;
         }
 
-        /* Mini-Map Radar */
+        /* --- MINI-MAP --- */
         #map-container {
             position: absolute;
             top: 15px;
             right: 15px;
-            width: 140px;
-            height: 140px;
-            background: rgba(0, 0, 0, 0.7);
+            width: 150px;
+            height: 150px;
+            background: rgba(0, 0, 0, 0.8);
             border: 3px solid #555;
             border-radius: 50%;
             overflow: hidden;
             pointer-events: none;
+            display: none;
         }
 
         #minimapCanvas {
@@ -94,6 +99,7 @@
             height: 20px;
             transform: translate(-50%, -50%);
             pointer-events: none;
+            display: none;
         }
 
         #crosshair::before, #crosshair::after {
@@ -112,12 +118,83 @@
             left: 50%;
             transform: translateX(-50%);
             color: #fff;
-            font-size: 13px;
-            background: rgba(0, 0, 0, 0.75);
+            font-size: 12px;
+            background: rgba(0, 0, 0, 0.8);
             border: 2px solid #555;
             padding: 8px 16px;
             text-align: center;
             border-radius: 4px;
+            display: none;
+        }
+
+        /* --- MENUS SYSTEM --- */
+        .menu-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(10, 15, 25, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            z-index: 100;
+        }
+
+        .menu-card {
+            background: rgba(0, 0, 0, 0.85);
+            border: 4px solid #555;
+            box-shadow: 0 0 20px #00ffcc;
+            padding: 30px 50px;
+            text-align: center;
+            border-radius: 8px;
+            max-width: 450px;
+            width: 90%;
+        }
+
+        .menu-title {
+            font-size: 28px;
+            color: #00ffcc;
+            margin-bottom: 8px;
+            text-shadow: 2px 2px 0 #000;
+        }
+
+        .menu-subtitle {
+            font-size: 14px;
+            color: #aaa;
+            margin-bottom: 25px;
+        }
+
+        .menu-btn {
+            display: block;
+            width: 100%;
+            padding: 12px 0;
+            margin: 10px 0;
+            font-size: 16px;
+            font-weight: bold;
+            font-family: inherit;
+            color: #fff;
+            background: #2e7d32;
+            border: 2px solid #fff;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s;
+            text-shadow: 1px 1px 0 #000;
+        }
+
+        .menu-btn:hover {
+            background: #4caf50;
+            transform: scale(1.03);
+        }
+
+        .menu-btn.secondary {
+            background: #c62828;
+        }
+
+        .menu-btn.secondary:hover {
+            background: #ef5350;
         }
     </style>
     <!-- Three.js 3D Engine -->
@@ -126,36 +203,94 @@
 <body>
 
 <div id="game-container">
-    <div id="hud">
-        <div class="hud-panel" style="width: calc(100% - 160px);">
-            <span>REYANSH'S PLANEGAME [ULTIMATE]</span>
-            <span>SCORE: <span id="score">004500</span> | LIVES: <span id="lives">3</span></span>
+    <!-- MAIN START MENU -->
+    <div id="start-menu" class="menu-overlay">
+        <div class="menu-card">
+            <h1 class="menu-title">REYANSH'S PLANEGAME</h1>
+            <div class="menu-subtitle">3D FPV HEAVY PAYLOAD DOGFIGHT</div>
+            <button class="menu-btn" id="start-btn">▶ PLAY GAME</button>
         </div>
-        <div id="flight-status" class="hud-panel" style="width: calc(100% - 160px);">
-            <span>ENGINE: <button id="engine-btn">OFF [E]</button></span>
-            <span>ALTITUDE: <span id="alt-meter">0</span>m</span>
+    </div>
+
+    <!-- PAUSE MENU -->
+    <div id="pause-menu" class="menu-overlay" style="display: none;">
+        <div class="menu-card">
+            <h1 class="menu-title" style="color: #ffeb3b;">GAME PAUSED</h1>
+            <button class="menu-btn" id="resume-btn">▶ RESUME</button>
+            <button class="menu-btn secondary" id="restart-btn">🔄 RESTART</button>
+        </div>
+    </div>
+
+    <!-- HUD -->
+    <div id="hud">
+        <div class="hud-panel" style="width: calc(100% - 170px);">
+            <span>REYANSH's PLANEGAME</span>
+            <span>PLANE: <span id="plane-type" style="color: #00ffcc;">FIGHTER JET</span> [P]</span>
+            <span>SCORE: <span id="score">004500</span></span>
+            <button class="hud-btn" id="menu-toggle-btn">MENU [ESC]</button>
+        </div>
+        <div id="flight-status" class="hud-panel" style="width: calc(100% - 170px);">
+            <span>ENGINE: <button id="engine-btn" class="hud-btn">OFF [E]</button></span>
+            <span>ALT: <span id="alt-meter">0</span>m</span>
             <span>GEAR: <span id="gear-status">DOWN 🛞</span></span>
-            <span>HEALTH: <span id="health">💚💚💚💚💚</span></span>
+            <span>HP: <span id="health">💚💚💚💚💚</span></span>
         </div>
     </div>
 
     <!-- Mini-Map Radar -->
     <div id="map-container">
-        <canvas id="minimapCanvas" width="140" height="140"></canvas>
+        <canvas id="minimapCanvas" width="150" height="150"></canvas>
     </div>
 
     <div id="crosshair"></div>
 
     <div id="controls-overlay">
-        🕹️ <b>Controls:</b> <b>E</b> (Engine On/Off) | <b>W/S</b> (Pitch Up/Down) | <b>A/D</b> (Roll/Turn) | <b>G</b> (Landing Gear) | <b>SPACE</b> (Fire)
+        🕹️ <b>Controls:</b> <b>E</b> (Engine) | <b>P</b> (Plane) | <b>W/S</b> (Pitch) | <b>A/D</b> (Roll) | <b>SPACE</b> (Guns) | <b>F / Right Click</b> (Heavy Missiles) | <b>ESC</b> (Menu)
     </div>
 </div>
 
 <script>
+// --- GAME STATE & MENU MANAGEMENT ---
+let gameState = 'START';
+
+const startMenu = document.getElementById('start-menu');
+const pauseMenu = document.getElementById('pause-menu');
+const hud = document.getElementById('hud');
+const mapContainer = document.getElementById('map-container');
+const crosshair = document.getElementById('crosshair');
+const controlsOverlay = document.getElementById('controls-overlay');
+
+function startGame() {
+    gameState = 'PLAYING';
+    startMenu.style.display = 'none';
+    pauseMenu.style.display = 'none';
+    hud.style.display = 'block';
+    mapContainer.style.display = 'block';
+    crosshair.style.display = 'block';
+    controlsOverlay.style.display = 'block';
+}
+
+function pauseGame() {
+    if (gameState === 'PLAYING') {
+        gameState = 'PAUSED';
+        pauseMenu.style.display = 'flex';
+    } else if (gameState === 'PAUSED') {
+        startGame();
+    }
+}
+
+document.getElementById('start-btn').addEventListener('click', startGame);
+document.getElementById('resume-btn').addEventListener('click', startGame);
+document.getElementById('restart-btn').addEventListener('click', () => location.reload());
+document.getElementById('menu-toggle-btn').addEventListener('click', pauseGame);
+
+// Prevent right click context menu for missile firing
+window.addEventListener('contextmenu', e => e.preventDefault());
+
 // --- SCENE & CAMERA SETUP ---
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x7ec0ee);
-scene.fog = new THREE.Fog(0x7ec0ee, 100, 350);
+scene.fog = new THREE.Fog(0x7ec0ee, 100, 400);
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({ antialias: false });
@@ -166,7 +301,6 @@ document.getElementById('game-container').appendChild(renderer.domElement);
 // Lighting
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
 scene.add(ambientLight);
-
 const sunLight = new THREE.DirectionalLight(0xffffff, 0.8);
 sunLight.position.set(50, 150, 50);
 scene.add(sunLight);
@@ -183,26 +317,38 @@ const woodMat   = mat(0x674a27);
 const ironMat   = mat(0x8e8e8e);
 const redMat    = mat(0xd32f2f);
 const darkMat   = mat(0x222222);
+const orangeMat = mat(0xff6600);
+const yellowMat = mat(0xffd700);
 const glassMat  = new THREE.MeshLambertMaterial({ color: 0x99d9ea, transparent: true, opacity: 0.5 });
 
-// --- COCKPIT & PLAYER PLANE ---
-const plane = new THREE.Group();
+// --- PLAYER PLANES ---
+const planesList = [
+    { name: "FIGHTER JET", color: ironMat, speed: 1.5, pitchRate: 0.05 },
+    { name: "RED BARON BIPLANE", color: redMat, speed: 1.1, pitchRate: 0.07 },
+    { name: "STEALTH BOMBER", color: darkMat, speed: 1.8, pitchRate: 0.04 }
+];
+let currentPlaneIdx = 0;
+
+const playerGroup = new THREE.Group();
 
 const dash = new THREE.Mesh(new THREE.BoxGeometry(3, 1, 1.2), woodMat);
 dash.position.set(0, -0.6, -1);
-plane.add(dash);
+playerGroup.add(dash);
 
 const leftFrame = new THREE.Mesh(new THREE.BoxGeometry(0.15, 1.8, 2), ironMat);
 leftFrame.position.set(-1.4, 0.2, -0.8);
 const rightFrame = leftFrame.clone();
 rightFrame.position.x = 1.4;
-plane.add(leftFrame, rightFrame);
+playerGroup.add(leftFrame, rightFrame);
 
 const glassPanel = new THREE.Mesh(new THREE.BoxGeometry(2.6, 1.6, 0.1), glassMat);
 glassPanel.position.set(0, 0.3, -1.8);
-plane.add(glassPanel);
+playerGroup.add(glassPanel);
 
-// Landing Gear
+const noseMesh = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.8, 2), planesList[0].color);
+noseMesh.position.set(0, -0.2, -2.2);
+playerGroup.add(noseMesh);
+
 const landingGearGroup = new THREE.Group();
 const wheelGeo = new THREE.BoxGeometry(0.6, 0.6, 0.3);
 const leftWheel = new THREE.Mesh(wheelGeo, darkMat);
@@ -210,30 +356,31 @@ leftWheel.position.set(-1.2, -1.6, -0.5);
 const rightWheel = leftWheel.clone();
 rightWheel.position.x = 1.2;
 landingGearGroup.add(leftWheel, rightWheel);
-plane.add(landingGearGroup);
+playerGroup.add(landingGearGroup);
 
-scene.add(plane);
+scene.add(playerGroup);
 camera.position.set(0, 0.2, 0);
-plane.add(camera);
+playerGroup.add(camera);
 
 // --- AIRPORTS & TERRAIN ---
 const GROUND_Y = -10;
 const terrainGroup = new THREE.Group();
 const cubeGeo = new THREE.BoxGeometry(4, 4, 4);
 
-// Defined Airport Locations (X, Z) with Short Runways
 const airports = [
-    { x: 0, z: 40 },
-    { x: -150, z: -300 },
-    { x: 180, z: -600 }
+    { name: "MAIN BASE", x: 0, z: 40 },
+    { name: "NORTH AIRFIELD", x: -200, z: -400 },
+    { name: "EAST RUNWAY", x: 250, z: -800 },
+    { name: "WEST FORTRESS", x: -300, z: -1200 },
+    { name: "SOUTH AIRPORT", x: 100, z: -1600 }
 ];
 
 function isInsideRunway(x, z) {
-    return airports.some(ap => Math.abs(x - ap.x) <= 12 && Math.abs(z - ap.z) <= 60);
+    return airports.some(ap => Math.abs(x - ap.x) <= 12 && Math.abs(z - ap.z) <= 70);
 }
 
-for (let x = -250; x <= 250; x += 4) {
-    for (let z = -700; z <= 150; z += 4) {
+for (let x = -350; x <= 350; x += 4) {
+    for (let z = -1800; z <= 150; z += 4) {
         let inRunway = isInsideRunway(x, z);
         let isStripe = inRunway && (x % 8 === 0) && (Math.abs(z) % 12 < 6);
 
@@ -247,11 +394,17 @@ for (let x = -250; x <= 250; x += 4) {
 }
 scene.add(terrainGroup);
 
-// Initial Position on Runway 1
-plane.position.set(0, GROUND_Y + 3.8, 40);
+playerGroup.position.set(0, GROUND_Y + 3.8, 40);
 
-// --- NPC ENEMIES ---
+// --- ENEMIES & PROJECTILES ---
 const enemies = [];
+const enemyBullets = [];
+const playerBullets = [];
+const missiles = [];
+
+let lastPlayerShot = 0;
+let lastMissileShot = 0;
+let missileWingToggle = false;
 
 function spawnEnemy() {
     const enemy = new THREE.Group();
@@ -259,42 +412,78 @@ function spawnEnemy() {
     enemy.add(body);
 
     const wingGeo = new THREE.BoxGeometry(8, 0.2, 1.8);
-    const topWing = new THREE.Mesh(wingGeo, ironMat);
+    const topWing = new THREE.Mesh(wingGeo, redMat);
     topWing.position.set(0, 1.2, 0);
-    const botWing = new THREE.Mesh(wingGeo, ironMat);
+    const botWing = new THREE.Mesh(wingGeo, redMat);
     botWing.position.set(0, -0.8, 0);
     enemy.add(topWing, botWing);
 
-    const mark = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.22, 0.8), redMat);
-    mark.position.set(2.5, 1.25, 0);
-    enemy.add(mark);
-
     enemy.position.set(
-        plane.position.x + (Math.random() - 0.5) * 80,
-        plane.position.y + Math.random() * 20 + 5,
-        plane.position.z - 150 - Math.random() * 100
+        playerGroup.position.x + (Math.random() - 0.5) * 120,
+        playerGroup.position.y + Math.random() * 25 + 5,
+        playerGroup.position.z - 200 - Math.random() * 150
     );
 
+    enemy.lastShot = Date.now();
     scene.add(enemy);
     enemies.push(enemy);
 }
 
-for (let i = 0; i < 5; i++) spawnEnemy();
+for (let i = 0; i < 6; i++) spawnEnemy();
 
-// --- BULLETS ---
-const bullets = [];
-
-function fireBullet() {
-    const bullet = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 1.2), new THREE.MeshBasicMaterial({ color: 0xffa500 }));
-    bullet.position.copy(plane.position);
-    bullet.quaternion.copy(plane.quaternion);
-    bullet.translateZ(-2);
-    bullet.translateY(-0.2);
-    scene.add(bullet);
-    bullets.push(bullet);
+function enemyFire(enemy) {
+    const eBullet = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 1.2), new THREE.MeshBasicMaterial({ color: 0xff0000 }));
+    eBullet.position.copy(enemy.position);
+    const dir = new THREE.Vector3().subVectors(playerGroup.position, enemy.position).normalize();
+    eBullet.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, -1), dir);
+    scene.add(eBullet);
+    enemyBullets.push({ mesh: eBullet, dir: dir });
 }
 
-// --- ENGINE & GAME CONTROLS ---
+function firePlayerBullet() {
+    const bullet = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 1.5), new THREE.MeshBasicMaterial({ color: 0x00ffff }));
+    bullet.position.copy(playerGroup.position);
+    bullet.quaternion.copy(playerGroup.quaternion);
+    bullet.translateZ(-2.5);
+    bullet.translateY(-0.2);
+    scene.add(bullet);
+    playerBullets.push(bullet);
+}
+
+// --- HEAVY PAYLOAD MISSILE WEAPON ---
+function fireMissile() {
+    const missileGroup = new THREE.Group();
+    
+    // Heavy Rocket Body
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 2.5, 8), redMat);
+    body.rotation.x = Math.PI / 2;
+    missileGroup.add(body);
+
+    // Rocket Nose Cone
+    const nose = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.8, 8), yellowMat);
+    nose.rotation.x = -Math.PI / 2;
+    nose.position.z = -1.6;
+    missileGroup.add(nose);
+
+    // Glowing Thruster Effect
+    const thruster = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.6), orangeMat);
+    thruster.position.z = 1.3;
+    missileGroup.add(thruster);
+
+    missileGroup.position.copy(playerGroup.position);
+    missileGroup.quaternion.copy(playerGroup.quaternion);
+
+    // Alternate launch sides (Left wing / Right wing offset)
+    const sideOffset = missileWingToggle ? 1.8 : -1.8;
+    missileWingToggle = !missileWingToggle;
+    missileGroup.translateX(sideOffset);
+    missileGroup.translateY(-0.5);
+
+    scene.add(missileGroup);
+    missiles.push({ mesh: missileGroup, aliveTime: 0 });
+}
+
+// --- CONTROLS & STATE ---
 let engineOn = false;
 let speed = 0;
 let gearDown = true;
@@ -315,51 +504,71 @@ function toggleEngine() {
     }
 }
 
+function switchPlane() {
+    currentPlaneIdx = (currentPlaneIdx + 1) % planesList.length;
+    const p = planesList[currentPlaneIdx];
+    document.getElementById('plane-type').innerText = p.name;
+    noseMesh.material = p.color;
+}
+
 engineBtn.addEventListener('click', toggleEngine);
 
 window.addEventListener('keydown', e => {
+    if (e.code === 'Escape') {
+        pauseGame();
+        return;
+    }
+
+    if (gameState !== 'PLAYING') return;
+
     keys[e.code] = true;
     if (e.code === 'KeyE') toggleEngine();
+    if (e.code === 'KeyP') switchPlane();
     if (e.code === 'KeyG') {
         gearDown = !gearDown;
         landingGearGroup.visible = gearDown;
         document.getElementById('gear-status').innerText = gearDown ? "DOWN 🛞" : "RETRACTED ✈️";
     }
-    if (e.code === 'Space') fireBullet();
 });
 
 window.addEventListener('keyup', e => keys[e.code] = false);
 
-// --- MINI-MAP RADAR RENDERER ---
+window.addEventListener('mousedown', e => {
+    if (gameState === 'PLAYING' && (e.button === 2 || e.button === 0)) {
+        keys['KeyF'] = true;
+    }
+});
+
+window.addEventListener('mouseup', e => {
+    if (e.button === 2 || e.button === 0) {
+        keys['KeyF'] = false;
+    }
+});
+
+// --- RADAR DISPLAY ---
 const mapCanvas = document.getElementById('minimapCanvas');
 const mapCtx = mapCanvas.getContext('2d');
 
 function drawMiniMap() {
-    mapCtx.clearRect(0, 0, 140, 140);
+    mapCtx.clearRect(0, 0, 150, 150);
+    const cx = 75, cy = 75, scale = 0.15;
 
-    const cx = 70;
-    const cy = 70;
-    const scale = 0.3;
-
-    // Draw Airports on Radar
     mapCtx.fillStyle = '#ffffff';
     airports.forEach(ap => {
-        let mx = cx + (ap.x - plane.position.x) * scale;
-        let my = cy + (ap.z - plane.position.z) * scale;
+        let mx = cx + (ap.x - playerGroup.position.x) * scale;
+        let my = cy + (ap.z - playerGroup.position.z) * scale;
         mapCtx.fillRect(mx - 3, my - 6, 6, 12);
     });
 
-    // Draw Enemies on Radar (Red dots)
     mapCtx.fillStyle = '#ff3333';
     enemies.forEach(e => {
-        let ex = cx + (e.position.x - plane.position.x) * scale;
-        let ey = cy + (e.position.z - plane.position.z) * scale;
+        let ex = cx + (e.position.x - playerGroup.position.x) * scale;
+        let ey = cy + (e.position.z - playerGroup.position.z) * scale;
         mapCtx.beginPath();
         mapCtx.arc(ex, ey, 3, 0, Math.PI * 2);
         mapCtx.fill();
     });
 
-    // Draw Player (Green Arrow in Center)
     mapCtx.fillStyle = '#00ffcc';
     mapCtx.beginPath();
     mapCtx.arc(cx, cy, 4, 0, Math.PI * 2);
@@ -370,97 +579,152 @@ function drawMiniMap() {
 function animate() {
     requestAnimationFrame(animate);
 
-    // Speed / Engine Physics
-    if (engineOn) {
-        speed = THREE.MathUtils.lerp(speed, 1.3, 0.03);
-    } else {
-        speed = THREE.MathUtils.lerp(speed, 0, 0.02);
-    }
+    if (gameState === 'PLAYING') {
+        const activePlane = planesList[currentPlaneIdx];
 
-    // Controls Pitch / Roll
-    if (speed > 0.3) {
-        if (keys['KeyW'] || keys['ArrowUp']) {
-            plane.rotation.x = THREE.MathUtils.lerp(plane.rotation.x, -0.3, 0.05);
-        } else if (keys['KeyS'] || keys['ArrowDown']) {
-            plane.rotation.x = THREE.MathUtils.lerp(plane.rotation.x, 0.3, 0.05);
+        if (engineOn) {
+            speed = THREE.MathUtils.lerp(speed, activePlane.speed, 0.03);
         } else {
-            plane.rotation.x = THREE.MathUtils.lerp(plane.rotation.x, 0, 0.05);
+            speed = THREE.MathUtils.lerp(speed, 0, 0.02);
         }
 
-        if (keys['KeyA'] || keys['ArrowLeft']) {
-            plane.rotation.z = THREE.MathUtils.lerp(plane.rotation.z, 0.4, 0.08);
-            plane.rotation.y += 0.015;
-        } else if (keys['KeyD'] || keys['ArrowRight']) {
-            plane.rotation.z = THREE.MathUtils.lerp(plane.rotation.z, -0.4, 0.08);
-            plane.rotation.y -= 0.015;
-        } else {
-            plane.rotation.z = THREE.MathUtils.lerp(plane.rotation.z, 0, 0.05);
+        // Rapid Fire Machine Guns
+        if (keys['Space'] && Date.now() - lastPlayerShot > 110) {
+            firePlayerBullet();
+            lastPlayerShot = Date.now();
         }
-    }
 
-    // Move Forward
-    const forward = new THREE.Vector3(0, 0, -speed).applyQuaternion(plane.quaternion);
-    plane.position.add(forward);
+        // Rapid Fire Heavy Payload Missiles (Key F or Right Click)
+        if (keys['KeyF'] && Date.now() - lastMissileShot > 160) {
+            fireMissile();
+            lastMissileShot = Date.now();
+        }
 
-    // Altitude Calculation
-    const altitude = Math.max(0, Math.floor((plane.position.y - (GROUND_Y + 3.8)) * 2));
-    document.getElementById('alt-meter').innerText = altitude;
+        if (speed > 0.3) {
+            if (keys['KeyW'] || keys['ArrowUp']) {
+                playerGroup.rotation.x = THREE.MathUtils.lerp(playerGroup.rotation.x, -0.3, activePlane.pitchRate);
+            } else if (keys['KeyS'] || keys['ArrowDown']) {
+                playerGroup.rotation.x = THREE.MathUtils.lerp(playerGroup.rotation.x, 0.3, activePlane.pitchRate);
+            } else {
+                playerGroup.rotation.x = THREE.MathUtils.lerp(playerGroup.rotation.x, 0, 0.05);
+            }
 
-    // Ground Collision
-    const minAltitude = GROUND_Y + (gearDown ? 3.8 : 2.0);
-    if (plane.position.y <= minAltitude) {
-        plane.position.y = minAltitude;
-        if (plane.rotation.x > 0) plane.rotation.x = 0;
-    }
+            if (keys['KeyA'] || keys['ArrowLeft']) {
+                playerGroup.rotation.z = THREE.MathUtils.lerp(playerGroup.rotation.z, 0.4, 0.08);
+                playerGroup.rotation.y += 0.015;
+            } else if (keys['KeyD'] || keys['ArrowRight']) {
+                playerGroup.rotation.z = THREE.MathUtils.lerp(playerGroup.rotation.z, -0.4, 0.08);
+                playerGroup.rotation.y -= 0.015;
+            } else {
+                playerGroup.rotation.z = THREE.MathUtils.lerp(playerGroup.rotation.z, 0, 0.05);
+            }
+        }
 
-    // Update Bullets
-    for (let i = bullets.length - 1; i >= 0; i--) {
-        const b = bullets[i];
-        b.position.add(new THREE.Vector3(0, 0, -3.0).applyQuaternion(b.quaternion));
+        const forward = new THREE.Vector3(0, 0, -speed).applyQuaternion(playerGroup.quaternion);
+        playerGroup.position.add(forward);
 
-        enemies.forEach((enemy, eIdx) => {
-            if (b.position.distanceTo(enemy.position) < 4.0) {
-                scene.remove(enemy);
-                enemies.splice(eIdx, 1);
+        const altitude = Math.max(0, Math.floor((playerGroup.position.y - (GROUND_Y + 3.8)) * 2));
+        document.getElementById('alt-meter').innerText = altitude;
+
+        const minAltitude = GROUND_Y + (gearDown ? 3.8 : 2.0);
+        if (playerGroup.position.y <= minAltitude) {
+            playerGroup.position.y = minAltitude;
+            if (playerGroup.rotation.x > 0) playerGroup.rotation.x = 0;
+        }
+
+        // --- Standard Bullets ---
+        for (let i = playerBullets.length - 1; i >= 0; i--) {
+            const b = playerBullets[i];
+            b.position.add(new THREE.Vector3(0, 0, -3.2).applyQuaternion(b.quaternion));
+
+            enemies.forEach((enemy, eIdx) => {
+                if (b.position.distanceTo(enemy.position) < 4.5) {
+                    scene.remove(enemy);
+                    enemies.splice(eIdx, 1);
+                    scene.remove(b);
+                    playerBullets.splice(i, 1);
+
+                    score += 150;
+                    document.getElementById('score').innerText = String(score).padStart(6, '0');
+                    spawnEnemy();
+                }
+            });
+
+            if (b && b.position.distanceTo(playerGroup.position) > 300) {
                 scene.remove(b);
-                bullets.splice(i, 1);
+                playerBullets.splice(i, 1);
+            }
+        }
 
-                score += 100;
-                document.getElementById('score').innerText = String(score).padStart(6, '0');
-                spawnEnemy();
+        // --- Heavy Payload Missiles Logic ---
+        for (let i = missiles.length - 1; i >= 0; i--) {
+            const m = missiles[i];
+            m.aliveTime += 1;
+            m.mesh.position.add(new THREE.Vector3(0, 0, -4.5).applyQuaternion(m.mesh.quaternion));
+
+            let exploded = false;
+            for (let eIdx = enemies.length - 1; eIdx >= 0; eIdx--) {
+                const enemy = enemies[eIdx];
+                // Large Heavy Payload Blast Radius (8.0 unit splash hit radius)
+                if (m.mesh.position.distanceTo(enemy.position) < 8.0) {
+                    scene.remove(enemy);
+                    enemies.splice(eIdx, 1);
+                    exploded = true;
+
+                    score += 300;
+                    document.getElementById('score').innerText = String(score).padStart(6, '0');
+                    spawnEnemy();
+                }
+            }
+
+            if (exploded || m.aliveTime > 120 || m.mesh.position.distanceTo(playerGroup.position) > 450) {
+                scene.remove(m.mesh);
+                missiles.splice(i, 1);
+            }
+        }
+
+        // --- Enemy AI & Attacks ---
+        enemies.forEach((enemy) => {
+            enemy.position.z += 0.35;
+
+            if (Date.now() - enemy.lastShot > 2000 && enemy.position.distanceTo(playerGroup.position) < 180) {
+                enemyFire(enemy);
+                enemy.lastShot = Date.now();
+            }
+
+            if (enemy.position.z > playerGroup.position.z + 40) {
+                enemy.position.set(
+                    playerGroup.position.x + (Math.random() - 0.5) * 120,
+                    playerGroup.position.y + Math.random() * 15,
+                    playerGroup.position.z - 220
+                );
             }
         });
 
-        if (b && b.position.distanceTo(plane.position) > 250) {
-            scene.remove(b);
-            bullets.splice(i, 1);
+        // --- Enemy Bullets ---
+        for (let i = enemyBullets.length - 1; i >= 0; i--) {
+            const eb = enemyBullets[i];
+            eb.mesh.position.addScaledVector(eb.dir, 1.8);
+
+            if (eb.mesh.position.distanceTo(playerGroup.position) < 2.5) {
+                health--;
+                document.getElementById('health').innerText = '💚'.repeat(Math.max(0, health));
+                scene.remove(eb.mesh);
+                enemyBullets.splice(i, 1);
+
+                if (health <= 0) location.reload();
+                continue;
+            }
+
+            if (eb.mesh.position.distanceTo(playerGroup.position) > 250) {
+                scene.remove(eb.mesh);
+                enemyBullets.splice(i, 1);
+            }
         }
+
+        drawMiniMap();
     }
 
-    // Update Enemies & Recycle
-    enemies.forEach((enemy, eIdx) => {
-        enemy.position.z += 0.3;
-
-        if (enemy.position.distanceTo(plane.position) < 4.5) {
-            health--;
-            document.getElementById('health').innerText = '💚'.repeat(Math.max(0, health));
-            scene.remove(enemy);
-            enemies.splice(eIdx, 1);
-            spawnEnemy();
-
-            if (health <= 0) location.reload();
-        }
-
-        if (enemy.position.z > plane.position.z + 30) {
-            enemy.position.set(
-                plane.position.x + (Math.random() - 0.5) * 80,
-                plane.position.y + Math.random() * 10,
-                plane.position.z - 200
-            );
-        }
-    });
-
-    drawMiniMap();
     renderer.render(scene, camera);
 }
 
