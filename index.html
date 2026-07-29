@@ -3,1220 +3,556 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reyansh's Minecraft Plane Game - Multiplayer & Builder Edition</title>
+    <title>Reyansh's Minecraft Plane Game - Christmas & Shop Edition</title>
     <style>
         * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            background-color: #000;
-            overflow: hidden;
-            font-family: 'Courier New', Courier, monospace;
             user-select: none;
         }
 
-        canvas {
+        body {
+            background-color: #1a1a1a;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+        }
+
+        #gameCanvas {
             display: block;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(to bottom, #70a1ff, #dfe4ea);
         }
 
         /* --- HUD OVERLAY --- */
         #hud {
             position: absolute;
-            top: 15px;
-            left: 15px;
-            right: 15px;
-            pointer-events: none;
-            color: #ffffff;
-            font-size: 15px;
-            font-weight: bold;
-            text-shadow: 2px 2px 0px #000;
-            display: none;
-        }
-
-        .hud-panel {
+            top: 20px;
+            left: 20px;
             background: rgba(0, 0, 0, 0.7);
-            border: 3px solid #3c3c3c;
-            padding: 8px 14px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 6px;
-        }
-
-        #flight-status {
-            color: #ffeb3b;
-        }
-
-        .hud-btn {
-            pointer-events: auto;
-            background: #444;
-            color: white;
-            border: 2px solid #fff;
-            padding: 4px 10px;
-            font-weight: bold;
-            font-family: inherit;
-            cursor: pointer;
-            border-radius: 4px;
-            text-shadow: 1px 1px 0 #000;
-        }
-
-        .hud-btn:hover {
-            background: #666;
-        }
-
-        #engine-btn.active {
-            background: #4caf50;
-        }
-
-        #brake-btn.active {
-            background: #d32f2f;
-        }
-
-        /* --- MINI-MAP --- */
-        #map-container {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            width: 150px;
-            height: 150px;
-            background: rgba(0, 0, 0, 0.8);
-            border: 3px solid #555;
-            border-radius: 50%;
-            overflow: hidden;
-            pointer-events: none;
-            display: none;
-        }
-
-        #minimapCanvas {
-            width: 100%;
-            height: 100%;
-        }
-
-        #crosshair {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 20px;
-            height: 20px;
-            transform: translate(-50%, -50%);
-            pointer-events: none;
-            display: none;
-        }
-
-        #crosshair::before, #crosshair::after {
-            content: '';
-            position: absolute;
-            background: #00ffcc;
-            box-shadow: 0 0 4px #000;
-        }
-
-        #crosshair::before { top: 9px; left: 0; width: 20px; height: 2px; }
-        #crosshair::after { top: 0; left: 9px; width: 2px; height: 20px; }
-
-        #controls-overlay {
-            position: absolute;
-            bottom: 15px;
-            left: 50%;
-            transform: translateX(-50%);
-            color: #fff;
-            font-size: 12px;
-            background: rgba(0, 0, 0, 0.8);
+            padding: 15px 20px;
             border: 2px solid #555;
-            padding: 8px 16px;
-            text-align: center;
-            border-radius: 4px;
-            display: none;
-        }
-
-        /* --- MENUS SYSTEM --- */
-        .menu-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: rgba(10, 15, 25, 0.85);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            z-index: 100;
-        }
-
-        .menu-card {
-            background: rgba(0, 0, 0, 0.85);
-            border: 4px solid #555;
-            box-shadow: 0 0 20px #00ffcc;
-            padding: 25px 40px;
-            text-align: center;
             border-radius: 8px;
-            max-width: 520px;
-            width: 90%;
-            max-height: 90vh;
-            overflow-y: auto;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            pointer-events: auto;
         }
 
-        .menu-title {
-            font-size: 26px;
-            color: #00ffcc;
+        #hud h1 {
+            font-size: 18px;
+            color: #55efc4;
             margin-bottom: 8px;
-            text-shadow: 2px 2px 0 #000;
-        }
-
-        .menu-subtitle {
-            font-size: 13px;
-            color: #aaa;
-            margin-bottom: 20px;
-        }
-
-        .menu-btn {
-            display: block;
-            width: 100%;
-            padding: 12px 0;
-            margin: 8px 0;
-            font-size: 15px;
-            font-weight: bold;
-            font-family: inherit;
-            color: #fff;
-            background: #2e7d32;
-            border: 2px solid #fff;
-            cursor: pointer;
-            border-radius: 4px;
-            transition: all 0.2s;
-            text-shadow: 1px 1px 0 #000;
-        }
-
-        .menu-btn:hover {
-            background: #4caf50;
-            transform: scale(1.02);
-        }
-
-        .menu-btn.secondary {
-            background: #0288d1;
-        }
-
-        .menu-btn.secondary:hover {
-            background: #03a9f4;
-        }
-
-        .menu-btn.warning {
-            background: #f57c00;
-        }
-
-        .menu-btn.warning:hover {
-            background: #ff9800;
-        }
-
-        .menu-btn.danger {
-            background: #c62828;
-        }
-
-        .menu-btn.danger:hover {
-            background: #ef5350;
-        }
-
-        .menu-input {
-            width: 100%;
-            padding: 10px;
-            margin: 8px 0;
-            font-size: 15px;
-            font-family: inherit;
-            text-align: center;
-            border: 2px solid #00ffcc;
-            background: #111;
-            color: #fff;
-            border-radius: 4px;
             text-transform: uppercase;
         }
 
-        /* --- PLANE BUILDER UI --- */
-        .builder-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            text-align: left;
-            font-size: 13px;
-            margin-bottom: 15px;
+        .hud-stat {
+            font-size: 14px;
+            margin: 4px 0;
+            color: #ddd;
         }
 
-        .builder-row {
+        .hud-stat span {
+            color: #ffeaa7;
+            font-weight: bold;
+        }
+
+        .hud-btn {
+            margin-top: 10px;
+            padding: 8px 14px;
+            background: #0984e3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        .hud-btn:hover {
+            background: #74b9ff;
+        }
+
+        /* --- MODAL BASE --- */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: #111;
+            border: 3px solid #fff;
+            padding: 20px;
+            border-radius: 12px;
+            color: #fff;
+            text-align: center;
+            max-width: 900px;
+            width: 90%;
+            position: relative;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: transparent;
+            border: none;
+            color: #ff7675;
+            font-size: 22px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        /* --- CHRISTMAS EVENT MODAL --- */
+        .christmas-theme {
+            border-color: #d63031;
+            box-shadow: 0 0 25px rgba(214, 48, 49, 0.8);
+            background: #1e0909;
+            max-width: 500px;
+        }
+
+        .reward-box {
+            background: #2d1313;
+            border: 2px dashed #55efc4;
+            margin: 20px 0;
+            padding: 15px;
+            font-size: 16px;
+            text-align: left;
+        }
+
+        .reward-box ul {
+            list-style: none;
+        }
+
+        .reward-box li {
+            margin: 8px 0;
+        }
+
+        #claimXmasBtn {
+            background: #00b894;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        #claimXmasBtn:hover {
+            background: #55efc4;
+            color: #000;
+        }
+
+        /* --- SHOP MODAL --- */
+        .shop-theme {
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .shop-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: #111;
-            padding: 6px 10px;
-            border: 1px solid #444;
+            margin-bottom: 15px;
+            padding-right: 30px;
+        }
+
+        #coinDisplay {
+            font-size: 18px;
+            color: #fdcb6e;
+            font-weight: bold;
+        }
+
+        .tier-filters {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .tier-filters button {
+            background: #2d3436;
+            color: #fff;
+            border: 1px solid #636e72;
+            padding: 6px 12px;
             border-radius: 4px;
-        }
-
-        .color-picker {
-            border: none;
-            width: 32px;
-            height: 24px;
             cursor: pointer;
-            background: none;
+            font-family: inherit;
         }
 
-        .slider-group {
-            grid-column: span 2;
+        .tier-filters button:hover {
+            background: #0984e3;
+        }
+
+        .planes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 12px;
+            overflow-y: auto;
+            max-height: 55vh;
+            padding: 10px;
+            background: #000;
+            border-radius: 8px;
+            border: 1px solid #333;
+        }
+
+        .plane-card {
+            background: #1e272e;
+            border: 2px solid #485460;
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
             display: flex;
             flex-direction: column;
-            gap: 4px;
-            background: #111;
-            padding: 8px 10px;
-            border: 1px solid #444;
+            justify-content: space-between;
+        }
+
+        .plane-card.tier-F { border-color: #b2bec3; }
+        .plane-card.tier-D { border-color: #55efc4; }
+        .plane-card.tier-C { border-color: #74b9ff; }
+        .plane-card.tier-B { border-color: #a29bfe; }
+        .plane-card.tier-A { border-color: #fdcb6e; }
+        .plane-card.tier-S { border-color: #ff7675; box-shadow: 0 0 10px rgba(255, 118, 117, 0.4); }
+
+        .buy-btn {
+            background: #0984e3;
+            color: #fff;
+            border: none;
+            padding: 6px 10px;
+            margin-top: 8px;
             border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: bold;
         }
 
-        .slider-group input {
-            width: 100%;
-            accent-color: #00ffcc;
+        .buy-btn:hover {
+            background: #74b9ff;
         }
 
-        #multiplayer-status {
-            font-size: 13px;
-            color: #ffeb3b;
-            margin-top: 10px;
+        .buy-btn.owned {
+            background: #00b894;
+            cursor: default;
+        }
+
+        .buy-btn.equipped {
+            background: #fdcb6e;
+            color: #000;
+            cursor: default;
         }
     </style>
-    <!-- Three.js 3D Engine -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <!-- PeerJS for WebRTC Multiplayer -->
-    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 </head>
 <body>
 
-<div id="game-container">
-    <!-- MAIN START MENU -->
-    <div id="start-menu" class="menu-overlay">
-        <div class="menu-card">
-            <h1 class="menu-title">REYANSH'S PLANEGAME</h1>
-            <div class="menu-subtitle">3D MULTIPLAYER DOGFIGHT SIMULATOR</div>
-            <button class="menu-btn" id="singleplayer-btn">▶ SINGLEPLAYER</button>
-            <button class="menu-btn secondary" id="multiplayer-btn">🌐 MULTIPLAYER LOBBY</button>
-            <button class="menu-btn warning" id="builder-menu-btn">🛠️ BUILD YOUR PLANE</button>
+    <!-- GAME CANVAS -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- HUD OVERLAY -->
+    <div id="hud">
+        <h1>✈️ Reyansh's Plane Game</h1>
+        <div class="hud-stat">R-Coins: <span id="hudCoins">0</span> 🪙</div>
+        <div class="hud-stat">Active Plane: <span id="hudPlane">Basic Starter</span></div>
+        <div class="hud-stat">Controls: <span>Arrow Keys / WASD</span></div>
+        <button class="hud-btn" onclick="toggleShop()">🛒 BUY PLANES SHOP</button>
+        <button class="hud-btn" style="background:#d63031;" onclick="forceTestChristmas()">🎄 EVENT TEST</button>
+    </div>
+
+    <!-- CHRISTMAS EVENT MODAL -->
+    <div id="christmasModal" class="modal">
+        <div class="modal-content christmas-theme">
+            <h2>🎄 CHRISTMAS EVENT IS LIVE! 🎁</h2>
+            <p style="margin-top: 10px;">Merry Christmas! Claim your holiday event rewards:</p>
+            <div class="reward-box">
+                <ul>
+                    <li>✨ <strong>59,756 R-Coins</strong></li>
+                    <li>✈️ <strong>Limited Edition Santa Jet</strong></li>
+                </ul>
+            </div>
+            <button id="claimXmasBtn" onclick="claimChristmasReward()">CLAIM REWARD</button>
         </div>
     </div>
 
-    <!-- PLANE BUILDER MENU -->
-    <div id="builder-menu" class="menu-overlay" style="display: none;">
-        <div class="menu-card">
-            <h1 class="menu-title" style="color: #ff9800;">🛠️ PLANE BUILDER</h1>
-            <div class="menu-subtitle">CUSTOMIZE YOUR AIRCRAFT COLORS & SPECS</div>
-
-            <div class="builder-grid">
-                <div class="builder-row">
-                    <span>Fuselage:</span>
-                    <input type="color" id="color-body" class="color-picker" value="#8e8e8e">
-                </div>
-                <div class="builder-row">
-                    <span>Wings:</span>
-                    <input type="color" id="color-wings" class="color-picker" value="#8e8e8e">
-                </div>
-                <div class="builder-row">
-                    <span>Tail Fin:</span>
-                    <input type="color" id="color-tail" class="color-picker" value="#d32f2f">
-                </div>
-                <div class="builder-row">
-                    <span>Nose / Engine:</span>
-                    <input type="color" id="color-nose" class="color-picker" value="#222222">
-                </div>
-
-                <div class="slider-group">
-                    <span>⚡ Top Speed: <b id="val-speed" style="color: #00ffcc;">1.6x</b></span>
-                    <input type="range" id="slider-speed" min="1.0" max="2.5" step="0.1" value="1.6">
-                </div>
-
-                <div class="slider-group">
-                    <span>🎯 Turn Agility: <b id="val-pitch" style="color: #00ffcc;">0.05</b></span>
-                    <input type="range" id="slider-pitch" min="0.03" max="0.10" step="0.01" value="0.05">
-                </div>
-
-                <div class="slider-group">
-                    <span>🛡️ Max Health: <b id="val-hp" style="color: #00ffcc;">5 HP</b></span>
-                    <input type="range" id="slider-hp" min="3" max="10" step="1" value="5">
-                </div>
+    <!-- PLANE SHOP MODAL -->
+    <div id="shopModal" class="modal">
+        <div class="modal-content shop-theme">
+            <button class="close-btn" onclick="toggleShop()">✕</button>
+            <div class="shop-header">
+                <h2>✈️ PLANE HANGAR & SHOP (500 PLANES)</h2>
+                <div id="coinDisplay">R-Coins: <span id="rCoinsCount">0</span> 🪙</div>
+            </div>
+            
+            <div class="tier-filters">
+                <button onclick="filterShop('ALL')">All (500)</button>
+                <button onclick="filterShop('F')">F-Tier (50)</button>
+                <button onclick="filterShop('D')">D-Tier (150)</button>
+                <button onclick="filterShop('C')">C-Tier (150)</button>
+                <button onclick="filterShop('B')">B-Tier (50)</button>
+                <button onclick="filterShop('A')">A-Tier (50)</button>
+                <button onclick="filterShop('S')">S-Tier (50)</button>
             </div>
 
-            <button class="menu-btn" id="save-plane-btn">💾 SAVE & CONTINUE</button>
-            <button class="menu-btn danger" id="builder-back-btn">⬅ BACK</button>
+            <div id="planesGrid" class="planes-grid"></div>
         </div>
     </div>
 
-    <!-- MULTIPLAYER MENU -->
-    <div id="multiplayer-menu" class="menu-overlay" style="display: none;">
-        <div class="menu-card">
-            <h1 class="menu-title">MULTIPLAYER LOBBY</h1>
-            <div class="menu-subtitle">HOST OR JOIN A ROOM</div>
-            
-            <button class="menu-btn" id="host-btn">🏠 HOST A GAME</button>
-            <div style="margin: 15px 0; color: #888;">--- OR JOIN A FRIEND ---</div>
-            <input type="text" id="room-code-input" class="menu-input" placeholder="ENTER ROOM CODE">
-            <button class="menu-btn secondary" id="join-btn">🚀 JOIN ROOM</button>
-            
-            <div id="multiplayer-status">Connecting to network...</div>
-            <button class="menu-btn danger" id="mp-back-btn" style="margin-top: 15px;">⬅ BACK</button>
-        </div>
-    </div>
-
-    <!-- PAUSE MENU -->
-    <div id="pause-menu" class="menu-overlay" style="display: none;">
-        <div class="menu-card">
-            <h1 class="menu-title" style="color: #ffeb3b;">GAME PAUSED</h1>
-            <button class="menu-btn" id="resume-btn">▶ RESUME</button>
-            <button class="menu-btn danger" id="restart-btn">🔄 RESTART</button>
-        </div>
-    </div>
-
-    <!-- GAME OVER / CRASH MENU -->
-    <div id="crash-menu" class="menu-overlay" style="display: none;">
-        <div class="menu-card" style="box-shadow: 0 0 25px #ff0000; border-color: #ff0000;">
-            <h1 class="menu-title" style="color: #ff3333;">💥 PLANE DESTROYED</h1>
-            <div class="menu-subtitle">CRASH LANDED OR SHOT DOWN</div>
-            <p style="font-size: 18px; margin-bottom: 20px;">FINAL SCORE: <span id="final-score" style="color: #00ffcc;">000000</span></p>
-            <button class="menu-btn" id="respawn-btn">🔄 RESPAWN / REPLAY</button>
-        </div>
-    </div>
-
-    <!-- HUD -->
-    <div id="hud">
-        <div class="hud-panel" style="width: calc(100% - 170px);">
-            <span>REYANSH's PLANEGAME</span>
-            <span>VIEW: <button id="camera-btn" class="hud-btn">1ST PERSON [C]</button></span>
-            <span>PLANE: <span id="plane-type" style="color: #00ffcc;">CUSTOM JET</span> [P]</span>
-            <span>SCORE: <span id="score">004500</span></span>
-            <button class="hud-btn" id="menu-toggle-btn">MENU [ESC]</button>
-        </div>
-        <div id="flight-status" class="hud-panel" style="width: calc(100% - 170px);">
-            <span>ENGINE: <button id="engine-btn" class="hud-btn">OFF [E]</button></span>
-            <span>BRAKE: <button id="brake-btn" class="hud-btn">OFF [B]</button></span>
-            <span>ALT: <span id="alt-meter">0</span>m</span>
-            <span>GEAR: <span id="gear-status">DOWN 🛞</span></span>
-            <span>HP: <span id="health">💚💚💚💚💚</span></span>
-            <span id="room-code-display" style="color: #00ffcc; display: none;">ROOM: <span id="my-room-code">---</span></span>
-        </div>
-    </div>
-
-    <!-- Mini-Map Radar -->
-    <div id="map-container">
-        <canvas id="minimapCanvas" width="150" height="150"></canvas>
-    </div>
-
-    <div id="crosshair"></div>
-
-    <div id="controls-overlay">
-        🕹️ <b>Controls:</b> <b>C</b> (View) | <b>E</b> (Engine) | <b>B</b> (Airbrakes/Brakes) | <b>P</b> (Plane) | <b>W/S</b> (Pitch) | <b>A/D</b> (Roll) | <b>SPACE</b> (Guns) | <b>F / Right Click</b> (Missiles) | <b>ESC</b> (Menu)
-    </div>
-</div>
-
-<script>
-// --- GAME STATE & MENU MANAGEMENT ---
-let gameState = 'START';
-let isMultiplayer = false;
-
-const startMenu = document.getElementById('start-menu');
-const builderMenu = document.getElementById('builder-menu');
-const mpMenu = document.getElementById('multiplayer-menu');
-const pauseMenu = document.getElementById('pause-menu');
-const crashMenu = document.getElementById('crash-menu');
-const hud = document.getElementById('hud');
-const mapContainer = document.getElementById('map-container');
-const crosshair = document.getElementById('crosshair');
-const controlsOverlay = document.getElementById('controls-overlay');
-const mpStatus = document.getElementById('multiplayer-status');
-
-function startGame() {
-    gameState = 'PLAYING';
-    startMenu.style.display = 'none';
-    builderMenu.style.display = 'none';
-    mpMenu.style.display = 'none';
-    pauseMenu.style.display = 'none';
-    crashMenu.style.display = 'none';
-    hud.style.display = 'block';
-    mapContainer.style.display = 'block';
-    crosshair.style.display = 'block';
-    controlsOverlay.style.display = 'block';
-}
-
-function pauseGame() {
-    if (gameState === 'PLAYING') {
-        gameState = 'PAUSED';
-        pauseMenu.style.display = 'flex';
-    } else if (gameState === 'PAUSED') {
-        startGame();
-    }
-}
-
-function triggerCrash() {
-    if (gameState === 'CRASHED') return;
-    gameState = 'CRASHED';
-
-    spawnExplosionDebris(playerGroup.position);
-    playerGroup.visible = false;
-    hud.style.display = 'none';
-
-    document.getElementById('final-score').innerText = String(score).padStart(6, '0');
-
-    if (isMultiplayer) sendNetworkData({ type: 'crash' });
-
-    setTimeout(() => {
-        crashMenu.style.display = 'flex';
-    }, 1200);
-}
-
-document.getElementById('singleplayer-btn').addEventListener('click', () => {
-    isMultiplayer = false;
-    startGame();
-});
-
-document.getElementById('builder-menu-btn').addEventListener('click', () => {
-    startMenu.style.display = 'none';
-    builderMenu.style.display = 'flex';
-});
-
-document.getElementById('builder-back-btn').addEventListener('click', () => {
-    builderMenu.style.display = 'none';
-    startMenu.style.display = 'flex';
-});
-
-document.getElementById('save-plane-btn').addEventListener('click', () => {
-    applyCustomPlaneSettings();
-    builderMenu.style.display = 'none';
-    startMenu.style.display = 'flex';
-});
-
-document.getElementById('multiplayer-btn').addEventListener('click', () => {
-    startMenu.style.display = 'none';
-    mpMenu.style.display = 'flex';
-    initPeer();
-});
-
-document.getElementById('mp-back-btn').addEventListener('click', () => {
-    mpMenu.style.display = 'none';
-    startMenu.style.display = 'flex';
-});
-
-document.getElementById('resume-btn').addEventListener('click', startGame);
-document.getElementById('restart-btn').addEventListener('click', () => location.reload());
-document.getElementById('respawn-btn').addEventListener('click', () => location.reload());
-document.getElementById('menu-toggle-btn').addEventListener('click', pauseGame);
-
-window.addEventListener('contextmenu', e => e.preventDefault());
-
-// --- MULTIPLAYER & PEERJS SETUP ---
-let peer = null;
-let connections = [];
-const remotePlayers = {};
-
-function initPeer() {
-    if (peer) return;
-    const randomId = 'plane-' + Math.floor(1000 + Math.random() * 9000);
-    peer = new Peer(randomId);
-
-    peer.on('open', id => {
-        mpStatus.innerText = "Ready to connect. Your Code: " + id;
-        document.getElementById('my-room-code').innerText = id;
-    });
-
-    peer.on('connection', conn => {
-        setupConnection(conn);
-    });
-
-    peer.on('error', err => {
-        mpStatus.innerText = "Connection error: " + err.type;
-    });
-}
-
-function setupConnection(conn) {
-    connections.push(conn);
-
-    conn.on('open', () => {
-        mpStatus.innerText = "Connected to room!";
-        document.getElementById('room-code-display').style.display = 'inline';
-        isMultiplayer = true;
-        setTimeout(startGame, 1000);
-    });
-
-    conn.on('data', data => {
-        handleNetworkData(conn.peer, data);
-    });
-
-    conn.on('close', () => {
-        if (remotePlayers[conn.peer]) {
-            scene.remove(remotePlayers[conn.peer].mesh);
-            delete remotePlayers[conn.peer];
-        }
-    });
-}
-
-document.getElementById('host-btn').addEventListener('click', () => {
-    if (!peer || !peer.id) return;
-    mpStatus.innerText = "Hosting room: " + peer.id + ". Waiting for players...";
-    document.getElementById('room-code-display').style.display = 'inline';
-    isMultiplayer = true;
-    setTimeout(startGame, 1500);
-});
-
-document.getElementById('join-btn').addEventListener('click', () => {
-    const code = document.getElementById('room-code-input').value.trim().toLowerCase();
-    if (!code) {
-        mpStatus.innerText = "Please enter a room code!";
-        return;
-    }
-    mpStatus.innerText = "Connecting to " + code + "...";
-    const conn = peer.connect(code);
-    setupConnection(conn);
-});
-
-function sendNetworkData(data) {
-    connections.forEach(conn => {
-        if (conn.open) conn.send(data);
-    });
-}
-
-function handleNetworkData(peerId, data) {
-    if (data.type === 'state') {
-        if (!remotePlayers[peerId]) {
-            remotePlayers[peerId] = createRemotePlayerMesh();
-        }
-        const p = remotePlayers[peerId];
-        p.mesh.position.set(data.pos.x, data.pos.y, data.pos.z);
-        p.mesh.quaternion.set(data.quat._x, data.quat._y, data.quat._z, data.quat._w);
-        p.mesh.visible = true;
-    } else if (data.type === 'crash') {
-        if (remotePlayers[peerId]) {
-            spawnExplosionDebris(remotePlayers[peerId].mesh.position);
-            remotePlayers[peerId].mesh.visible = false;
-        }
-    }
-}
-
-function createRemotePlayerMesh() {
-    const group = new THREE.Group();
-    const body = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.4, 6), redMat);
-    const wings = new THREE.Mesh(new THREE.BoxGeometry(12, 0.2, 2.2), redMat);
-    wings.position.set(0, 0, -0.5);
-    group.add(body, wings);
-    scene.add(group);
-    return { mesh: group };
-}
-
-// --- SCENE & CAMERA SETUP ---
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x7ec0ee);
-scene.fog = new THREE.Fog(0x7ec0ee, 100, 450);
-
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-const renderer = new THREE.WebGLRenderer({ antialias: false });
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1));
-document.getElementById('game-container').appendChild(renderer.domElement);
-
-// Lighting
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
-scene.add(ambientLight);
-const sunLight = new THREE.DirectionalLight(0xffffff, 0.8);
-sunLight.position.set(50, 150, 50);
-scene.add(sunLight);
-
-// --- MATERIALS ---
-function mat(color) {
-    return new THREE.MeshLambertMaterial({ color: color, flatShading: true });
-}
-
-const grassMat  = mat(0x5b8731);
-const runwayMat = mat(0x3c3c3c);
-const stripeMat = mat(0xffffff);
-const woodMat   = mat(0x674a27);
-const ironMat   = mat(0x8e8e8e);
-const redMat    = mat(0xd32f2f);
-const darkMat   = mat(0x222222);
-const orangeMat = mat(0xff6600);
-const yellowMat = mat(0xffd700);
-const glassMat  = new THREE.MeshLambertMaterial({ color: 0x99d9ea, transparent: true, opacity: 0.5 });
-
-// --- PLANE STATS & PRESETS ---
-const planesList = [
-    { name: "CUSTOM BUILD", color: ironMat, speed: 1.6, pitchRate: 0.05, maxHp: 5 },
-    { name: "FIGHTER JET", color: ironMat, speed: 1.6, pitchRate: 0.05, maxHp: 5 },
-    { name: "RED BARON BIPLANE", color: redMat, speed: 1.2, pitchRate: 0.07, maxHp: 4 },
-    { name: "STEALTH BOMBER", color: darkMat, speed: 1.9, pitchRate: 0.04, maxHp: 8 }
-];
-let currentPlaneIdx = 0;
-
-// --- BUILD PLAYER AIRCRAFT MODEL ---
-const playerGroup = new THREE.Group();
-
-const planeBody = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.4, 6), planesList[0].color);
-playerGroup.add(planeBody);
-
-const mainWings = new THREE.Mesh(new THREE.BoxGeometry(12, 0.2, 2.2), planesList[0].color);
-mainWings.position.set(0, 0, -0.5);
-playerGroup.add(mainWings);
-
-const tailFin = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.8, 1.4), redMat);
-tailFin.position.set(0, 1.2, 2.2);
-playerGroup.add(tailFin);
-
-const cockpitGlass = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.0, 2.2), glassMat);
-cockpitGlass.position.set(0, 0.8, -0.5);
-playerGroup.add(cockpitGlass);
-
-const noseMesh = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.8, 2), darkMat);
-noseMesh.position.set(0, -0.1, -3.8);
-playerGroup.add(noseMesh);
-
-const dash = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.6, 0.5), woodMat);
-dash.position.set(0, 0.2, -1.2);
-playerGroup.add(dash);
-
-const landingGearGroup = new THREE.Group();
-const wheelGeo = new THREE.BoxGeometry(0.6, 0.6, 0.3);
-const leftWheel = new THREE.Mesh(wheelGeo, darkMat);
-leftWheel.position.set(-1.2, -1.2, -0.5);
-const rightWheel = leftWheel.clone();
-rightWheel.position.x = 1.2;
-landingGearGroup.add(leftWheel, rightWheel);
-playerGroup.add(landingGearGroup);
-
-scene.add(playerGroup);
-
-// PLANE BUILDER LOGIC
-const inputBodyColor = document.getElementById('color-body');
-const inputWingsColor = document.getElementById('color-wings');
-const inputTailColor = document.getElementById('color-tail');
-const inputNoseColor = document.getElementById('color-nose');
-
-const sliderSpeed = document.getElementById('slider-speed');
-const sliderPitch = document.getElementById('slider-pitch');
-const sliderHp = document.getElementById('slider-hp');
-
-sliderSpeed.addEventListener('input', () => document.getElementById('val-speed').innerText = sliderSpeed.value + 'x');
-sliderPitch.addEventListener('input', () => document.getElementById('val-pitch').innerText = sliderPitch.value);
-sliderHp.addEventListener('input', () => document.getElementById('val-hp').innerText = sliderHp.value + ' HP');
-
-function applyCustomPlaneSettings() {
-    planesList[0].color = mat(inputBodyColor.value);
-    planeBody.material = planesList[0].color;
-
-    mainWings.material = mat(inputWingsColor.value);
-    tailFin.material = mat(inputTailColor.value);
-    noseMesh.material = mat(inputNoseColor.value);
-
-    planesList[0].speed = parseFloat(sliderSpeed.value);
-    planesList[0].pitchRate = parseFloat(sliderPitch.value);
-    planesList[0].maxHp = parseInt(sliderHp.value);
-
-    health = planesList[0].maxHp;
-    document.getElementById('health').innerText = '💚'.repeat(health);
-}
-
-// --- CAMERA VIEW MODES ---
-const CAMERA_MODES = [
-    { name: "1ST PERSON", pos: new THREE.Vector3(0, 0.85, -1.6), look: new THREE.Vector3(0, 0.85, -10) },
-    { name: "3RD PERSON (CLOSE)", pos: new THREE.Vector3(0, 3.5, 12), look: new THREE.Vector3(0, 0, -5) },
-    { name: "3RD PERSON (FAR)", pos: new THREE.Vector3(0, 7.0, 22), look: new THREE.Vector3(0, 0, -10) }
-];
-let cameraModeIdx = 0;
-
-function updateCameraView() {
-    const camSetting = CAMERA_MODES[cameraModeIdx];
-    camera.position.copy(camSetting.pos);
-    camera.lookAt(camSetting.look);
-    document.getElementById('camera-btn').innerText = `${camSetting.name} [C]`;
-
-    if (cockpitGlass) {
-        cockpitGlass.visible = (cameraModeIdx !== 0);
-    }
-}
-
-playerGroup.add(camera);
-updateCameraView();
-
-function switchCamera() {
-    cameraModeIdx = (cameraModeIdx + 1) % CAMERA_MODES.length;
-    updateCameraView();
-}
-
-document.getElementById('camera-btn').addEventListener('click', switchCamera);
-
-// --- AIRPORTS & TERRAIN ---
-const GROUND_Y = -10;
-const terrainGroup = new THREE.Group();
-const cubeGeo = new THREE.BoxGeometry(4, 4, 4);
-
-const airports = [
-    { name: "MAIN BASE", x: 0, z: 40 },
-    { name: "NORTH AIRFIELD", x: -200, z: -400 },
-    { name: "EAST RUNWAY", x: 250, z: -800 },
-    { name: "WEST FORTRESS", x: -300, z: -1200 },
-    { name: "SOUTH AIRPORT", x: 100, z: -1600 }
-];
-
-function isInsideRunway(x, z) {
-    return airports.some(ap => Math.abs(x - ap.x) <= 12 && Math.abs(z - ap.z) <= 70);
-}
-
-for (let x = -350; x <= 350; x += 4) {
-    for (let z = -1800; z <= 150; z += 4) {
-        let inRunway = isInsideRunway(x, z);
-        let isStripe = inRunway && (x % 8 === 0) && (Math.abs(z) % 12 < 6);
-
-        let m = inRunway ? (isStripe ? stripeMat : runwayMat) : grassMat;
-        let y = inRunway ? GROUND_Y : GROUND_Y + Math.floor(Math.sin(x * 0.05) * Math.cos(z * 0.05) * 2) * 4;
-
-        const block = new THREE.Mesh(cubeGeo, m);
-        block.position.set(x, y, z);
-        terrainGroup.add(block);
-    }
-}
-scene.add(terrainGroup);
-
-playerGroup.position.set(0, GROUND_Y + 3.8, 40);
-
-// --- EXPLOSION PARTICLES SYSTEM ---
-const explosionParticles = [];
-
-function spawnExplosionDebris(pos) {
-    const pGeo = new THREE.BoxGeometry(0.8, 0.8, 0.8);
-    for (let i = 0; i < 40; i++) {
-        const matColor = i % 2 === 0 ? orangeMat : yellowMat;
-        const p = new THREE.Mesh(pGeo, matColor);
-        p.position.copy(pos);
-        
-        p.velocity = new THREE.Vector3(
-            (Math.random() - 0.5) * 1.8,
-            Math.random() * 1.5 + 0.5,
-            (Math.random() - 0.5) * 1.8
-        );
-        scene.add(p);
-        explosionParticles.push(p);
-    }
-}
-
-// --- ENEMIES & PROJECTILES ---
-const enemies = [];
-const enemyBullets = [];
-const playerBullets = [];
-const missiles = [];
-
-let lastPlayerShot = 0;
-let lastMissileShot = 0;
-let missileWingToggle = false;
-
-function spawnEnemy() {
-    const enemy = new THREE.Group();
-    const body = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.6, 5), darkMat);
-    enemy.add(body);
-
-    const wingGeo = new THREE.BoxGeometry(8, 0.2, 1.8);
-    const topWing = new THREE.Mesh(wingGeo, redMat);
-    topWing.position.set(0, 1.2, 0);
-    const botWing = new THREE.Mesh(wingGeo, redMat);
-    botWing.position.set(0, -0.8, 0);
-    enemy.add(topWing, botWing);
-
-    enemy.position.set(
-        playerGroup.position.x + (Math.random() - 0.5) * 120,
-        playerGroup.position.y + Math.random() * 25 + 5,
-        playerGroup.position.z - 200 - Math.random() * 150
-    );
-
-    enemy.lastShot = Date.now();
-    scene.add(enemy);
-    enemies.push(enemy);
-}
-
-for (let i = 0; i < 6; i++) spawnEnemy();
-
-function enemyFire(enemy) {
-    const eBullet = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 1.2), new THREE.MeshBasicMaterial({ color: 0xff0000 }));
-    eBullet.position.copy(enemy.position);
-    const dir = new THREE.Vector3().subVectors(playerGroup.position, enemy.position).normalize();
-    eBullet.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, -1), dir);
-    scene.add(eBullet);
-    enemyBullets.push({ mesh: eBullet, dir: dir });
-}
-
-function firePlayerBullet() {
-    const bullet = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 1.5), new THREE.MeshBasicMaterial({ color: 0x00ffff }));
-    bullet.position.copy(playerGroup.position);
-    bullet.quaternion.copy(playerGroup.quaternion);
-    bullet.translateZ(-3.5);
-    bullet.translateY(-0.2);
-    scene.add(bullet);
-    playerBullets.push(bullet);
-}
-
-function fireMissile() {
-    const missileGroup = new THREE.Group();
-    
-    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 2.5, 8), redMat);
-    body.rotation.x = Math.PI / 2;
-    missileGroup.add(body);
-
-    const nose = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.8, 8), yellowMat);
-    nose.rotation.x = -Math.PI / 2;
-    nose.position.z = -1.6;
-    missileGroup.add(nose);
-
-    const thruster = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.6), orangeMat);
-    thruster.position.z = 1.3;
-    missileGroup.add(thruster);
-
-    missileGroup.position.copy(playerGroup.position);
-    missileGroup.quaternion.copy(playerGroup.quaternion);
-
-    const sideOffset = missileWingToggle ? 2.5 : -2.5;
-    missileWingToggle = !missileWingToggle;
-    missileGroup.translateX(sideOffset);
-    missileGroup.translateY(-0.5);
-
-    scene.add(missileGroup);
-    missiles.push({ mesh: missileGroup, aliveTime: 0 });
-}
-
-// --- PHYSICS, BRAKES & CONTROL VARIABLES ---
-let engineOn = false;
-let brakesOn = false;
-let currentSpeed = 0;
-let verticalVelocity = 0;
-let gearDown = true;
-let score = 4500;
-let health = 5;
-const keys = {};
-
-const engineBtn = document.getElementById('engine-btn');
-const brakeBtn = document.getElementById('brake-btn');
-
-function toggleEngine() {
-    engineOn = !engineOn;
-    if (engineOn) {
-        engineBtn.innerText = "ON [E]";
-        engineBtn.classList.add('active');
-    } else {
-        engineBtn.innerText = "OFF [E]";
-        engineBtn.classList.remove('active');
-    }
-}
-
-function toggleBrakes() {
-    brakesOn = !brakesOn;
-    if (brakesOn) {
-        brakeBtn.innerText = "ON [B]";
-        brakeBtn.classList.add('active');
-    } else {
-        brakeBtn.innerText = "OFF [B]";
-        brakeBtn.classList.remove('active');
-    }
-}
-
-function switchPlane() {
-    currentPlaneIdx = (currentPlaneIdx + 1) % planesList.length;
-    const p = planesList[currentPlaneIdx];
-    document.getElementById('plane-type').innerText = p.name;
-    planeBody.material = p.color;
-    mainWings.material = p.color;
-    tailFin.material = p.color;
-    noseMesh.material = p.color;
-    health = p.maxHp;
-    document.getElementById('health').innerText = '💚'.repeat(health);
-}
-
-engineBtn.addEventListener('click', toggleEngine);
-brakeBtn.addEventListener('click', toggleBrakes);
-
-window.addEventListener('keydown', e => {
-    if (e.code === 'Escape') {
-        pauseGame();
-        return;
-    }
-
-    if (gameState !== 'PLAYING') return;
-
-    keys[e.code] = true;
-    if (e.code === 'KeyC') switchCamera();
-    if (e.code === 'KeyE') toggleEngine();
-    if (e.code === 'KeyB') toggleBrakes();
-    if (e.code === 'KeyP') switchPlane();
-    if (e.code === 'KeyG') {
-        gearDown = !gearDown;
-        landingGearGroup.visible = gearDown;
-        document.getElementById('gear-status').innerText = gearDown ? "DOWN 🛞" : "RETRACTED ✈️";
-    }
-});
-
-window.addEventListener('keyup', e => keys[e.code] = false);
-
-window.addEventListener('mousedown', e => {
-    if (gameState === 'PLAYING' && (e.button === 2 || e.button === 0)) {
-        keys['KeyF'] = true;
-    }
-});
-
-window.addEventListener('mouseup', e => {
-    if (e.button === 2 || e.button === 0) {
-        keys['KeyF'] = false;
-    }
-});
-
-// --- RADAR DISPLAY ---
-const mapCanvas = document.getElementById('minimapCanvas');
-const mapCtx = mapCanvas.getContext('2d');
-
-function drawMiniMap() {
-    mapCtx.clearRect(0, 0, 150, 150);
-    const cx = 75, cy = 75, scale = 0.15;
-
-    mapCtx.fillStyle = '#ffffff';
-    airports.forEach(ap => {
-        let mx = cx + (ap.x - playerGroup.position.x) * scale;
-        let my = cy + (ap.z - playerGroup.position.z) * scale;
-        mapCtx.fillRect(mx - 3, my - 6, 6, 12);
-    });
-
-    mapCtx.fillStyle = '#ff3333';
-    enemies.forEach(e => {
-        let ex = cx + (e.position.x - playerGroup.position.x) * scale;
-        let ey = cy + (e.position.z - playerGroup.position.z) * scale;
-        mapCtx.beginPath();
-        mapCtx.arc(ex, ey, 3, 0, Math.PI * 2);
-        mapCtx.fill();
-    });
-
-    mapCtx.fillStyle = '#ff00ff';
-    Object.values(remotePlayers).forEach(rp => {
-        if (rp.mesh.visible) {
-            let rx = cx + (rp.mesh.position.x - playerGroup.position.x) * scale;
-            let ry = cy + (rp.mesh.position.z - playerGroup.position.z) * scale;
-            mapCtx.beginPath();
-            mapCtx.arc(rx, ry, 4, 0, Math.PI * 2);
-            mapCtx.fill();
-        }
-    });
-
-    mapCtx.fillStyle = '#00ffcc';
-    mapCtx.beginPath();
-    mapCtx.arc(cx, cy, 4, 0, Math.PI * 2);
-    mapCtx.fill();
-}
-
-let lastNetworkSync = 0;
-
-// --- MAIN GAME LOOP ---
-function animate() {
-    requestAnimationFrame(animate);
-
-    for (let i = explosionParticles.length - 1; i >= 0; i--) {
-        const p = explosionParticles[i];
-        p.position.add(p.velocity);
-        p.velocity.y -= 0.03;
-        p.scale.multiplyScalar(0.96);
-        if (p.scale.x < 0.05) {
-            scene.remove(p);
-            explosionParticles.splice(i, 1);
-        }
-    }
-
-    if (gameState === 'PLAYING') {
-        const activePlane = planesList[currentPlaneIdx];
-
-        // Advanced Momentum & Airbrakes Physics
-        if (engineOn) {
-            let targetSpeed = activePlane.speed;
-            if (brakesOn) targetSpeed *= 0.35; // Airbrakes slow down engine output
-            currentSpeed = THREE.MathUtils.lerp(currentSpeed, targetSpeed, 0.02);
-            verticalVelocity = THREE.MathUtils.lerp(verticalVelocity, 0, 0.05);
-        } else {
-            let dragFactor = brakesOn ? 0.025 : 0.006; // Brakes apply heavy friction
-            currentSpeed = THREE.MathUtils.lerp(currentSpeed, 0, dragFactor);
-
-            if (playerGroup.position.y > GROUND_Y + 3.8) {
-                const gravityStrength = (1.5 - currentSpeed) * 0.015;
-                verticalVelocity -= Math.max(0.005, gravityStrength);
-            }
-        }
-
-        // Firing Weapons
-        if (keys['Space'] && Date.now() - lastPlayerShot > 110) {
-            firePlayerBullet();
-            lastPlayerShot = Date.now();
-        }
-
-        if (keys['KeyF'] && Date.now() - lastMissileShot > 160) {
-            fireMissile();
-            lastMissileShot = Date.now();
-        }
-
-        // Flight controls
-        if (currentSpeed > 0.15) {
-            if (keys['KeyW'] || keys['ArrowUp']) {
-                playerGroup.rotation.x = THREE.MathUtils.lerp(playerGroup.rotation.x, -0.3, activePlane.pitchRate);
-            } else if (keys['KeyS'] || keys['ArrowDown']) {
-                playerGroup.rotation.x = THREE.MathUtils.lerp(playerGroup.rotation.x, 0.3, activePlane.pitchRate);
-            } else {
-                playerGroup.rotation.x = THREE.MathUtils.lerp(playerGroup.rotation.x, 0, 0.05);
-            }
-
-            if (keys['KeyA'] || keys['ArrowLeft']) {
-                playerGroup.rotation.z = THREE.MathUtils.lerp(playerGroup.rotation.z, 0.4, 0.08);
-                playerGroup.rotation.y += 0.015;
-            } else if (keys['KeyD'] || keys['ArrowRight']) {
-                playerGroup.rotation.z = THREE.MathUtils.lerp(playerGroup.rotation.z, -0.4, 0.08);
-                playerGroup.rotation.y -= 0.015;
-            } else {
-                playerGroup.rotation.z = THREE.MathUtils.lerp(playerGroup.rotation.z, 0, 0.05);
-            }
-        } else if (!engineOn && playerGroup.position.y > GROUND_Y + 3.8) {
-            playerGroup.rotation.x = THREE.MathUtils.lerp(playerGroup.rotation.x, 0.35, 0.03);
-        }
-
-        // Apply Forward & Vertical Movement
-        const forward = new THREE.Vector3(0, 0, -currentSpeed).applyQuaternion(playerGroup.quaternion);
-        playerGroup.position.add(forward);
-        playerGroup.position.y += verticalVelocity;
-
-        const altitude = Math.max(0, Math.floor((playerGroup.position.y - (GROUND_Y + 3.8)) * 2));
-        document.getElementById('alt-meter').innerText = altitude;
-
-        // Ground Collision & Landing Brakes
-        const minAltitude = GROUND_Y + (gearDown ? 3.8 : 2.0);
-        if (playerGroup.position.y <= minAltitude) {
-            const isSteepDive = playerGroup.rotation.x > 0.15;
-            const isHighSpeedImpact = currentSpeed > 0.8;
-            const isGearMissing = !gearDown;
-
-            if (isSteepDive || (isHighSpeedImpact && isGearMissing) || verticalVelocity < -0.2) {
-                triggerCrash();
-            } else {
-                playerGroup.position.y = minAltitude;
-                verticalVelocity = 0;
-                if (playerGroup.rotation.x > 0) playerGroup.rotation.x = 0;
-                
-                // Wheel ground braking
-                if (brakesOn) {
-                    currentSpeed = THREE.MathUtils.lerp(currentSpeed, 0, 0.08);
-                }
-            }
-        }
-
-        // Network sync
-        if (isMultiplayer && Date.now() - lastNetworkSync > 50) {
-            sendNetworkData({
-                type: 'state',
-                pos: playerGroup.position,
-                quat: playerGroup.quaternion
-            });
-            lastNetworkSync = Date.now();
-        }
-
-        // Bullets update
-        for (let i = playerBullets.length - 1; i >= 0; i--) {
-            const b = playerBullets[i];
-            b.position.add(new THREE.Vector3(0, 0, -3.2).applyQuaternion(b.quaternion));
-
-            enemies.forEach((enemy, eIdx) => {
-                if (b.position.distanceTo(enemy.position) < 4.5) {
-                    scene.remove(enemy);
-                    enemies.splice(eIdx, 1);
-                    scene.remove(b);
-                    playerBullets.splice(i, 1);
-
-                    score += 150;
-                    document.getElementById('score').innerText = String(score).padStart(6, '0');
-                    spawnEnemy();
-                }
-            });
-
-            if (b && b.position.distanceTo(playerGroup.position) > 300) {
-                scene.remove(b);
-                playerBullets.splice(i, 1);
-            }
-        }
-
-        // Missiles update
-        for (let i = missiles.length - 1; i >= 0; i--) {
-            const m = missiles[i];
-            m.aliveTime += 1;
-            m.mesh.position.add(new THREE.Vector3(0, 0, -4.5).applyQuaternion(m.mesh.quaternion));
-
-            let exploded = false;
-            for (let eIdx = enemies.length - 1; eIdx >= 0; eIdx--) {
-                const enemy = enemies[eIdx];
-                if (m.mesh.position.distanceTo(enemy.position) < 8.0) {
-                    scene.remove(enemy);
-                    enemies.splice(eIdx, 1);
-                    exploded = true;
-
-                    score += 300;
-                    document.getElementById('score').innerText = String(score).padStart(6, '0');
-                    spawnEnemy();
-                }
-            }
-
-            if (exploded || m.aliveTime > 120 || m.mesh.position.distanceTo(playerGroup.position) > 450) {
-                scene.remove(m.mesh);
-                missiles.splice(i, 1);
-            }
-        }
-
-        // Enemy AI Movement & Fire
-        enemies.forEach((enemy) => {
-            enemy.position.z += 0.35;
-
-            if (Date.now() - enemy.lastShot > 2000 && enemy.position.distanceTo(playerGroup.position) < 180) {
-                enemyFire(enemy);
-                enemy.lastShot = Date.now();
-            }
-
-            if (enemy.position.z > playerGroup.position.z + 40) {
-                enemy.position.set(
-                    playerGroup.position.x + (Math.random() - 0.5) * 120,
-                    playerGroup.position.y + Math.random() * 15,
-                    playerGroup.position.z - 220
-                );
+    <script>
+        // --- PLAYER DATA & STATE ---
+        let playerStats = {
+            rCoins: 0,
+            ownedPlanes: ['starter_1'],
+            equippedPlane: 'starter_1',
+            claimedXmas: false
+        };
+
+        // --- GENERATE 500 PLANES (50 F, 150 D, 150 C, 50 B, 50 A, 50 S) ---
+        const tierDefinitions = [
+            { name: 'F', count: 50, basePrice: 100, speedMult: 1.0, color: '#b2bec3' },
+            { name: 'D', count: 150, basePrice: 500, speedMult: 1.2, color: '#55efc4' },
+            { name: 'C', count: 150, basePrice: 1500, speedMult: 1.5, color: '#74b9ff' },
+            { name: 'B', count: 50, basePrice: 5000, speedMult: 2.0, color: '#a29bfe' },
+            { name: 'A', count: 50, basePrice: 15000, speedMult: 2.8, color: '#fdcb6e' },
+            { name: 'S', count: 50, basePrice: 50000, speedMult: 4.0, color: '#ff7675' }
+        ];
+
+        let allPlanes = [
+            { id: 'starter_1', name: 'Starter Plane', tier: 'F', price: 0, speed: 4, color: '#ffffff' }
+        ];
+
+        let planeCounter = 1;
+        tierDefinitions.forEach(tier => {
+            for (let i = 1; i <= tier.count; i++) {
+                allPlanes.push({
+                    id: `plane_${planeCounter}`,
+                    name: `${tier.name}-Class Plane #${i}`,
+                    tier: tier.name,
+                    price: Math.floor(tier.basePrice * (1 + (i * 0.04))),
+                    speed: 4 + Math.floor(tier.speedMult * 2) + Math.floor(i * 0.1),
+                    color: tier.color
+                });
+                planeCounter++;
             }
         });
 
-        // Enemy Bullets
-        for (let i = enemyBullets.length - 1; i >= 0; i--) {
-            const eb = enemyBullets[i];
-            eb.mesh.position.addScaledVector(eb.dir, 1.8);
+        // Limited Edition Event Plane
+        const xmasPlane = {
+            id: 'plane_xmas_santa',
+            name: '🎄 Santa Sleigh Jet',
+            tier: 'S',
+            price: 0,
+            speed: 16,
+            color: '#d63031'
+        };
+        allPlanes.push(xmasPlane);
 
-            if (eb.mesh.position.distanceTo(playerGroup.position) < 2.5) {
-                health--;
-                document.getElementById('health').innerText = '💚'.repeat(Math.max(0, health));
-                scene.remove(eb.mesh);
-                enemyBullets.splice(i, 1);
+        // --- CHRISTMAS EVENT LOGIC ---
+        function checkChristmasEvent() {
+            const today = new Date();
+            // Month 11 is December (0-indexed)
+            const isDec25 = (today.getMonth() === 11 && today.getDate() === 25);
 
-                if (health <= 0) triggerCrash();
-                continue;
-            }
-
-            if (eb.mesh.position.distanceTo(playerGroup.position) > 250) {
-                scene.remove(eb.mesh);
-                enemyBullets.splice(i, 1);
+            if (isDec25 && !playerStats.claimedXmas) {
+                document.getElementById('christmasModal').style.display = 'flex';
             }
         }
 
-        drawMiniMap();
-    }
+        function forceTestChristmas() {
+            document.getElementById('christmasModal').style.display = 'flex';
+        }
 
-    renderer.render(scene, camera);
-}
+        function claimChristmasReward() {
+            playerStats.rCoins += 59756;
+            if (!playerStats.ownedPlanes.includes(xmasPlane.id)) {
+                playerStats.ownedPlanes.push(xmasPlane.id);
+            }
+            playerStats.equippedPlane = xmasPlane.id;
+            playerStats.claimedXmas = true;
 
-window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-});
+            document.getElementById('christmasModal').style.display = 'none';
+            updateUI();
+            alert("🎁 Claimed 59,756 R-Coins and the Limited Edition Santa Sleigh Jet!");
+        }
 
-animate();
-</script>
+        // --- SHOP & UI LOGIC ---
+        function updateUI() {
+            document.getElementById('hudCoins').innerText = playerStats.rCoins.toLocaleString();
+            document.getElementById('rCoinsCount').innerText = playerStats.rCoins.toLocaleString();
+            
+            const activePlaneObj = allPlanes.find(p => p.id === playerStats.equippedPlane);
+            document.getElementById('hudPlane').innerText = activePlaneObj ? activePlaneObj.name : 'Unknown';
+        }
 
+        function toggleShop() {
+            const modal = document.getElementById('shopModal');
+            const isHidden = modal.style.display === 'none' || modal.style.display === '';
+            modal.style.display = isHidden ? 'flex' : 'none';
+            if (isHidden) {
+                renderShop('ALL');
+            }
+        }
+
+        let currentFilter = 'ALL';
+        function filterShop(tier) {
+            currentFilter = tier;
+            renderShop(tier);
+        }
+
+        function renderShop(filterTier) {
+            const grid = document.getElementById('planesGrid');
+            grid.innerHTML = '';
+
+            const filtered = filterTier === 'ALL' 
+                ? allPlanes.filter(p => p.id !== 'plane_xmas_santa' || playerStats.ownedPlanes.includes(p.id))
+                : allPlanes.filter(p => p.tier === filterTier);
+
+            filtered.forEach(plane => {
+                const isOwned = playerStats.ownedPlanes.includes(plane.id);
+                const isEquipped = playerStats.equippedPlane === plane.id;
+
+                const card = document.createElement('div');
+                card.className = `plane-card tier-${plane.tier}`;
+                
+                let buttonText = `🪙 ${plane.price.toLocaleString()}`;
+                let buttonClass = 'buy-btn';
+
+                if (isEquipped) {
+                    buttonText = 'EQUIPPED';
+                    buttonClass = 'buy-btn equipped';
+                } else if (isOwned) {
+                    buttonText = 'EQUIP';
+                    buttonClass = 'buy-btn owned';
+                }
+
+                card.innerHTML = `
+                    <div>
+                        <strong style="color: ${plane.color}">${plane.name}</strong><br>
+                        <small style="color: #aaa;">Tier: ${plane.tier} | Speed: ${plane.speed}</small>
+                    </div>
+                    <button class="${buttonClass}" onclick="handlePlaneClick('${plane.id}')">${buttonText}</button>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function handlePlaneClick(id) {
+            const plane = allPlanes.find(p => p.id === id);
+            if (!plane) return;
+
+            const isOwned = playerStats.ownedPlanes.includes(plane.id);
+
+            if (isOwned) {
+                playerStats.equippedPlane = plane.id;
+                updateUI();
+                renderShop(currentFilter);
+            } else if (playerStats.rCoins >= plane.price) {
+                playerStats.rCoins -= plane.price;
+                playerStats.ownedPlanes.push(plane.id);
+                playerStats.equippedPlane = plane.id;
+                updateUI();
+                renderShop(currentFilter);
+            } else {
+                alert("Not enough R-Coins!");
+            }
+        }
+
+        // --- GAME ENGINE & CANVAS RENDERING ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const keys = {};
+        window.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
+        window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+
+        // Plane position
+        let planeX = canvas.width / 2;
+        let planeY = canvas.height / 2;
+        let angle = 0;
+
+        function updateGame() {
+            const currentPlaneObj = allPlanes.find(p => p.id === playerStats.equippedPlane) || allPlanes[0];
+            const speed = currentPlaneObj.speed;
+
+            if (keys['arrowleft'] || keys['a']) angle -= 0.05;
+            if (keys['arrowright'] || keys['d']) angle += 0.05;
+
+            if (keys['arrowup'] || keys['w']) {
+                planeX += Math.cos(angle) * speed;
+                planeY += Math.sin(angle) * speed;
+            } else {
+                planeX += Math.cos(angle) * (speed * 0.4);
+                planeY += Math.sin(angle) * (speed * 0.4);
+            }
+
+            // Screen loop
+            if (planeX < 0) planeX = canvas.width;
+            if (planeX > canvas.width) planeX = 0;
+            if (planeY < 0) planeY = canvas.height;
+            if (planeY > canvas.height) planeY = 0;
+        }
+
+        function drawGame() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Minecraft-style Blocky Ground Grid
+            const tileSize = 64;
+            for (let x = 0; x < canvas.width; x += tileSize) {
+                for (let y = 0; y < canvas.height; y += tileSize) {
+                    ctx.fillStyle = (Math.floor(x / tileSize) + Math.floor(y / tileSize)) % 2 === 0 ? '#55efc4' : '#00b894';
+                    ctx.fillRect(x, y, tileSize, tileSize);
+                    ctx.strokeStyle = 'rgba(0,0,0,0.05)';
+                    ctx.strokeRect(x, y, tileSize, tileSize);
+                }
+            }
+
+            // Draw Active Plane
+            const currentPlaneObj = allPlanes.find(p => p.id === playerStats.equippedPlane) || allPlanes[0];
+
+            ctx.save();
+            ctx.translate(planeX, planeY);
+            ctx.rotate(angle);
+
+            // Wing shadow
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+            ctx.fillRect(-15, -15, 30, 30);
+
+            // Plane Body (Minecraft Blocky Aesthetic)
+            ctx.fillStyle = currentPlaneObj.color;
+            ctx.fillRect(-20, -6, 40, 12); // Main body
+            ctx.fillRect(-5, -22, 10, 44); // Wings
+            ctx.fillStyle = '#2d3436';
+            ctx.fillRect(8, -4, 8, 8);   // Cockpit glass
+
+            ctx.restore();
+        }
+
+        function gameLoop() {
+            updateGame();
+            drawGame();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Initialize Game
+        window.addEventListener('load', () => {
+            updateUI();
+            checkChristmasEvent();
+            gameLoop();
+        });
+    </script>
 </body>
 </html>
