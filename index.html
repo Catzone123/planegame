@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reyansh's Minecraft Plane Game - Multiplayer Edition</title>
+    <title>Reyansh's Minecraft Plane Game - Multiplayer & Builder Edition</title>
     <style>
         * {
             margin: 0;
@@ -69,6 +69,10 @@
 
         #engine-btn.active {
             background: #4caf50;
+        }
+
+        #brake-btn.active {
+            background: #d32f2f;
         }
 
         /* --- MINI-MAP --- */
@@ -147,24 +151,26 @@
             background: rgba(0, 0, 0, 0.85);
             border: 4px solid #555;
             box-shadow: 0 0 20px #00ffcc;
-            padding: 30px 50px;
+            padding: 25px 40px;
             text-align: center;
             border-radius: 8px;
-            max-width: 480px;
+            max-width: 520px;
             width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
         }
 
         .menu-title {
-            font-size: 28px;
+            font-size: 26px;
             color: #00ffcc;
             margin-bottom: 8px;
             text-shadow: 2px 2px 0 #000;
         }
 
         .menu-subtitle {
-            font-size: 14px;
+            font-size: 13px;
             color: #aaa;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
         }
 
         .menu-btn {
@@ -172,7 +178,7 @@
             width: 100%;
             padding: 12px 0;
             margin: 8px 0;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: bold;
             font-family: inherit;
             color: #fff;
@@ -197,6 +203,14 @@
             background: #03a9f4;
         }
 
+        .menu-btn.warning {
+            background: #f57c00;
+        }
+
+        .menu-btn.warning:hover {
+            background: #ff9800;
+        }
+
         .menu-btn.danger {
             background: #c62828;
         }
@@ -209,7 +223,7 @@
             width: 100%;
             padding: 10px;
             margin: 8px 0;
-            font-size: 16px;
+            font-size: 15px;
             font-family: inherit;
             text-align: center;
             border: 2px solid #00ffcc;
@@ -217,6 +231,50 @@
             color: #fff;
             border-radius: 4px;
             text-transform: uppercase;
+        }
+
+        /* --- PLANE BUILDER UI --- */
+        .builder-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            text-align: left;
+            font-size: 13px;
+            margin-bottom: 15px;
+        }
+
+        .builder-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #111;
+            padding: 6px 10px;
+            border: 1px solid #444;
+            border-radius: 4px;
+        }
+
+        .color-picker {
+            border: none;
+            width: 32px;
+            height: 24px;
+            cursor: pointer;
+            background: none;
+        }
+
+        .slider-group {
+            grid-column: span 2;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            background: #111;
+            padding: 8px 10px;
+            border: 1px solid #444;
+            border-radius: 4px;
+        }
+
+        .slider-group input {
+            width: 100%;
+            accent-color: #00ffcc;
         }
 
         #multiplayer-status {
@@ -240,6 +298,52 @@
             <div class="menu-subtitle">3D MULTIPLAYER DOGFIGHT SIMULATOR</div>
             <button class="menu-btn" id="singleplayer-btn">▶ SINGLEPLAYER</button>
             <button class="menu-btn secondary" id="multiplayer-btn">🌐 MULTIPLAYER LOBBY</button>
+            <button class="menu-btn warning" id="builder-menu-btn">🛠️ BUILD YOUR PLANE</button>
+        </div>
+    </div>
+
+    <!-- PLANE BUILDER MENU -->
+    <div id="builder-menu" class="menu-overlay" style="display: none;">
+        <div class="menu-card">
+            <h1 class="menu-title" style="color: #ff9800;">🛠️ PLANE BUILDER</h1>
+            <div class="menu-subtitle">CUSTOMIZE YOUR AIRCRAFT COLORS & SPECS</div>
+
+            <div class="builder-grid">
+                <div class="builder-row">
+                    <span>Fuselage:</span>
+                    <input type="color" id="color-body" class="color-picker" value="#8e8e8e">
+                </div>
+                <div class="builder-row">
+                    <span>Wings:</span>
+                    <input type="color" id="color-wings" class="color-picker" value="#8e8e8e">
+                </div>
+                <div class="builder-row">
+                    <span>Tail Fin:</span>
+                    <input type="color" id="color-tail" class="color-picker" value="#d32f2f">
+                </div>
+                <div class="builder-row">
+                    <span>Nose / Engine:</span>
+                    <input type="color" id="color-nose" class="color-picker" value="#222222">
+                </div>
+
+                <div class="slider-group">
+                    <span>⚡ Top Speed: <b id="val-speed" style="color: #00ffcc;">1.6x</b></span>
+                    <input type="range" id="slider-speed" min="1.0" max="2.5" step="0.1" value="1.6">
+                </div>
+
+                <div class="slider-group">
+                    <span>🎯 Turn Agility: <b id="val-pitch" style="color: #00ffcc;">0.05</b></span>
+                    <input type="range" id="slider-pitch" min="0.03" max="0.10" step="0.01" value="0.05">
+                </div>
+
+                <div class="slider-group">
+                    <span>🛡️ Max Health: <b id="val-hp" style="color: #00ffcc;">5 HP</b></span>
+                    <input type="range" id="slider-hp" min="3" max="10" step="1" value="5">
+                </div>
+            </div>
+
+            <button class="menu-btn" id="save-plane-btn">💾 SAVE & CONTINUE</button>
+            <button class="menu-btn danger" id="builder-back-btn">⬅ BACK</button>
         </div>
     </div>
 
@@ -283,12 +387,13 @@
         <div class="hud-panel" style="width: calc(100% - 170px);">
             <span>REYANSH's PLANEGAME</span>
             <span>VIEW: <button id="camera-btn" class="hud-btn">1ST PERSON [C]</button></span>
-            <span>PLANE: <span id="plane-type" style="color: #00ffcc;">FIGHTER JET</span> [P]</span>
+            <span>PLANE: <span id="plane-type" style="color: #00ffcc;">CUSTOM JET</span> [P]</span>
             <span>SCORE: <span id="score">004500</span></span>
             <button class="hud-btn" id="menu-toggle-btn">MENU [ESC]</button>
         </div>
         <div id="flight-status" class="hud-panel" style="width: calc(100% - 170px);">
             <span>ENGINE: <button id="engine-btn" class="hud-btn">OFF [E]</button></span>
+            <span>BRAKE: <button id="brake-btn" class="hud-btn">OFF [B]</button></span>
             <span>ALT: <span id="alt-meter">0</span>m</span>
             <span>GEAR: <span id="gear-status">DOWN 🛞</span></span>
             <span>HP: <span id="health">💚💚💚💚💚</span></span>
@@ -304,7 +409,7 @@
     <div id="crosshair"></div>
 
     <div id="controls-overlay">
-        🕹️ <b>Controls:</b> <b>C</b> (Camera View) | <b>E</b> (Engine) | <b>P</b> (Plane) | <b>W/S</b> (Pitch) | <b>A/D</b> (Roll) | <b>SPACE</b> (Guns) | <b>F / Right Click</b> (Missiles) | <b>ESC</b> (Menu)
+        🕹️ <b>Controls:</b> <b>C</b> (View) | <b>E</b> (Engine) | <b>B</b> (Airbrakes/Brakes) | <b>P</b> (Plane) | <b>W/S</b> (Pitch) | <b>A/D</b> (Roll) | <b>SPACE</b> (Guns) | <b>F / Right Click</b> (Missiles) | <b>ESC</b> (Menu)
     </div>
 </div>
 
@@ -314,6 +419,7 @@ let gameState = 'START';
 let isMultiplayer = false;
 
 const startMenu = document.getElementById('start-menu');
+const builderMenu = document.getElementById('builder-menu');
 const mpMenu = document.getElementById('multiplayer-menu');
 const pauseMenu = document.getElementById('pause-menu');
 const crashMenu = document.getElementById('crash-menu');
@@ -326,6 +432,7 @@ const mpStatus = document.getElementById('multiplayer-status');
 function startGame() {
     gameState = 'PLAYING';
     startMenu.style.display = 'none';
+    builderMenu.style.display = 'none';
     mpMenu.style.display = 'none';
     pauseMenu.style.display = 'none';
     crashMenu.style.display = 'none';
@@ -348,19 +455,14 @@ function triggerCrash() {
     if (gameState === 'CRASHED') return;
     gameState = 'CRASHED';
 
-    // Spawn explosion debris particles
     spawnExplosionDebris(playerGroup.position);
-    
-    // Hide plane model
     playerGroup.visible = false;
     hud.style.display = 'none';
 
     document.getElementById('final-score').innerText = String(score).padStart(6, '0');
 
-    // Notify peers if in multiplayer
     if (isMultiplayer) sendNetworkData({ type: 'crash' });
 
-    // Show Game Over menu after short delay
     setTimeout(() => {
         crashMenu.style.display = 'flex';
     }, 1200);
@@ -369,6 +471,22 @@ function triggerCrash() {
 document.getElementById('singleplayer-btn').addEventListener('click', () => {
     isMultiplayer = false;
     startGame();
+});
+
+document.getElementById('builder-menu-btn').addEventListener('click', () => {
+    startMenu.style.display = 'none';
+    builderMenu.style.display = 'flex';
+});
+
+document.getElementById('builder-back-btn').addEventListener('click', () => {
+    builderMenu.style.display = 'none';
+    startMenu.style.display = 'flex';
+});
+
+document.getElementById('save-plane-btn').addEventListener('click', () => {
+    applyCustomPlaneSettings();
+    builderMenu.style.display = 'none';
+    startMenu.style.display = 'flex';
 });
 
 document.getElementById('multiplayer-btn').addEventListener('click', () => {
@@ -521,15 +639,16 @@ const orangeMat = mat(0xff6600);
 const yellowMat = mat(0xffd700);
 const glassMat  = new THREE.MeshLambertMaterial({ color: 0x99d9ea, transparent: true, opacity: 0.5 });
 
-// --- PLAYER PLANES ---
+// --- PLANE STATS & PRESETS ---
 const planesList = [
-    { name: "FIGHTER JET", color: ironMat, speed: 1.6, pitchRate: 0.05 },
-    { name: "RED BARON BIPLANE", color: redMat, speed: 1.2, pitchRate: 0.07 },
-    { name: "STEALTH BOMBER", color: darkMat, speed: 1.9, pitchRate: 0.04 }
+    { name: "CUSTOM BUILD", color: ironMat, speed: 1.6, pitchRate: 0.05, maxHp: 5 },
+    { name: "FIGHTER JET", color: ironMat, speed: 1.6, pitchRate: 0.05, maxHp: 5 },
+    { name: "RED BARON BIPLANE", color: redMat, speed: 1.2, pitchRate: 0.07, maxHp: 4 },
+    { name: "STEALTH BOMBER", color: darkMat, speed: 1.9, pitchRate: 0.04, maxHp: 8 }
 ];
 let currentPlaneIdx = 0;
 
-// --- BUILD PLANE 3D MODEL ---
+// --- BUILD PLAYER AIRCRAFT MODEL ---
 const playerGroup = new THREE.Group();
 
 const planeBody = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.4, 6), planesList[0].color);
@@ -539,7 +658,7 @@ const mainWings = new THREE.Mesh(new THREE.BoxGeometry(12, 0.2, 2.2), planesList
 mainWings.position.set(0, 0, -0.5);
 playerGroup.add(mainWings);
 
-const tailFin = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.8, 1.4), planesList[0].color);
+const tailFin = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.8, 1.4), redMat);
 tailFin.position.set(0, 1.2, 2.2);
 playerGroup.add(tailFin);
 
@@ -547,7 +666,7 @@ const cockpitGlass = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.0, 2.2), glassM
 cockpitGlass.position.set(0, 0.8, -0.5);
 playerGroup.add(cockpitGlass);
 
-const noseMesh = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.8, 2), planesList[0].color);
+const noseMesh = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.8, 2), darkMat);
 noseMesh.position.set(0, -0.1, -3.8);
 playerGroup.add(noseMesh);
 
@@ -566,6 +685,36 @@ playerGroup.add(landingGearGroup);
 
 scene.add(playerGroup);
 
+// PLANE BUILDER LOGIC
+const inputBodyColor = document.getElementById('color-body');
+const inputWingsColor = document.getElementById('color-wings');
+const inputTailColor = document.getElementById('color-tail');
+const inputNoseColor = document.getElementById('color-nose');
+
+const sliderSpeed = document.getElementById('slider-speed');
+const sliderPitch = document.getElementById('slider-pitch');
+const sliderHp = document.getElementById('slider-hp');
+
+sliderSpeed.addEventListener('input', () => document.getElementById('val-speed').innerText = sliderSpeed.value + 'x');
+sliderPitch.addEventListener('input', () => document.getElementById('val-pitch').innerText = sliderPitch.value);
+sliderHp.addEventListener('input', () => document.getElementById('val-hp').innerText = sliderHp.value + ' HP');
+
+function applyCustomPlaneSettings() {
+    planesList[0].color = mat(inputBodyColor.value);
+    planeBody.material = planesList[0].color;
+
+    mainWings.material = mat(inputWingsColor.value);
+    tailFin.material = mat(inputTailColor.value);
+    noseMesh.material = mat(inputNoseColor.value);
+
+    planesList[0].speed = parseFloat(sliderSpeed.value);
+    planesList[0].pitchRate = parseFloat(sliderPitch.value);
+    planesList[0].maxHp = parseInt(sliderHp.value);
+
+    health = planesList[0].maxHp;
+    document.getElementById('health').innerText = '💚'.repeat(health);
+}
+
 // --- CAMERA VIEW MODES ---
 const CAMERA_MODES = [
     { name: "1ST PERSON", pos: new THREE.Vector3(0, 0.85, -1.6), look: new THREE.Vector3(0, 0.85, -10) },
@@ -580,7 +729,6 @@ function updateCameraView() {
     camera.lookAt(camSetting.look);
     document.getElementById('camera-btn').innerText = `${camSetting.name} [C]`;
 
-    // Hide cockpit glass in 1st person to prevent visual clipping
     if (cockpitGlass) {
         cockpitGlass.visible = (cameraModeIdx !== 0);
     }
@@ -732,8 +880,9 @@ function fireMissile() {
     missiles.push({ mesh: missileGroup, aliveTime: 0 });
 }
 
-// --- PHYSICS & MOMENTUM VARIABLES ---
+// --- PHYSICS, BRAKES & CONTROL VARIABLES ---
 let engineOn = false;
+let brakesOn = false;
 let currentSpeed = 0;
 let verticalVelocity = 0;
 let gearDown = true;
@@ -742,6 +891,7 @@ let health = 5;
 const keys = {};
 
 const engineBtn = document.getElementById('engine-btn');
+const brakeBtn = document.getElementById('brake-btn');
 
 function toggleEngine() {
     engineOn = !engineOn;
@@ -754,6 +904,17 @@ function toggleEngine() {
     }
 }
 
+function toggleBrakes() {
+    brakesOn = !brakesOn;
+    if (brakesOn) {
+        brakeBtn.innerText = "ON [B]";
+        brakeBtn.classList.add('active');
+    } else {
+        brakeBtn.innerText = "OFF [B]";
+        brakeBtn.classList.remove('active');
+    }
+}
+
 function switchPlane() {
     currentPlaneIdx = (currentPlaneIdx + 1) % planesList.length;
     const p = planesList[currentPlaneIdx];
@@ -762,9 +923,12 @@ function switchPlane() {
     mainWings.material = p.color;
     tailFin.material = p.color;
     noseMesh.material = p.color;
+    health = p.maxHp;
+    document.getElementById('health').innerText = '💚'.repeat(health);
 }
 
 engineBtn.addEventListener('click', toggleEngine);
+brakeBtn.addEventListener('click', toggleBrakes);
 
 window.addEventListener('keydown', e => {
     if (e.code === 'Escape') {
@@ -777,6 +941,7 @@ window.addEventListener('keydown', e => {
     keys[e.code] = true;
     if (e.code === 'KeyC') switchCamera();
     if (e.code === 'KeyE') toggleEngine();
+    if (e.code === 'KeyB') toggleBrakes();
     if (e.code === 'KeyP') switchPlane();
     if (e.code === 'KeyG') {
         gearDown = !gearDown;
@@ -823,7 +988,6 @@ function drawMiniMap() {
         mapCtx.fill();
     });
 
-    // Draw Remote Players on Radar
     mapCtx.fillStyle = '#ff00ff';
     Object.values(remotePlayers).forEach(rp => {
         if (rp.mesh.visible) {
@@ -847,7 +1011,6 @@ let lastNetworkSync = 0;
 function animate() {
     requestAnimationFrame(animate);
 
-    // Update Explosion Particles
     for (let i = explosionParticles.length - 1; i >= 0; i--) {
         const p = explosionParticles[i];
         p.position.add(p.velocity);
@@ -862,12 +1025,16 @@ function animate() {
     if (gameState === 'PLAYING') {
         const activePlane = planesList[currentPlaneIdx];
 
-        // Momentum Physics
+        // Advanced Momentum & Airbrakes Physics
         if (engineOn) {
-            currentSpeed = THREE.MathUtils.lerp(currentSpeed, activePlane.speed, 0.02);
+            let targetSpeed = activePlane.speed;
+            if (brakesOn) targetSpeed *= 0.35; // Airbrakes slow down engine output
+            currentSpeed = THREE.MathUtils.lerp(currentSpeed, targetSpeed, 0.02);
             verticalVelocity = THREE.MathUtils.lerp(verticalVelocity, 0, 0.05);
         } else {
-            currentSpeed = THREE.MathUtils.lerp(currentSpeed, 0, 0.006);
+            let dragFactor = brakesOn ? 0.025 : 0.006; // Brakes apply heavy friction
+            currentSpeed = THREE.MathUtils.lerp(currentSpeed, 0, dragFactor);
+
             if (playerGroup.position.y > GROUND_Y + 3.8) {
                 const gravityStrength = (1.5 - currentSpeed) * 0.015;
                 verticalVelocity -= Math.max(0.005, gravityStrength);
@@ -916,7 +1083,7 @@ function animate() {
         const altitude = Math.max(0, Math.floor((playerGroup.position.y - (GROUND_Y + 3.8)) * 2));
         document.getElementById('alt-meter').innerText = altitude;
 
-        // Ground Collision & Crash Logic
+        // Ground Collision & Landing Brakes
         const minAltitude = GROUND_Y + (gearDown ? 3.8 : 2.0);
         if (playerGroup.position.y <= minAltitude) {
             const isSteepDive = playerGroup.rotation.x > 0.15;
@@ -929,10 +1096,15 @@ function animate() {
                 playerGroup.position.y = minAltitude;
                 verticalVelocity = 0;
                 if (playerGroup.rotation.x > 0) playerGroup.rotation.x = 0;
+                
+                // Wheel ground braking
+                if (brakesOn) {
+                    currentSpeed = THREE.MathUtils.lerp(currentSpeed, 0, 0.08);
+                }
             }
         }
 
-        // Sync Position to Multiplayer Network
+        // Network sync
         if (isMultiplayer && Date.now() - lastNetworkSync > 50) {
             sendNetworkData({
                 type: 'state',
@@ -942,7 +1114,7 @@ function animate() {
             lastNetworkSync = Date.now();
         }
 
-        // Standard Bullets Update
+        // Bullets update
         for (let i = playerBullets.length - 1; i >= 0; i--) {
             const b = playerBullets[i];
             b.position.add(new THREE.Vector3(0, 0, -3.2).applyQuaternion(b.quaternion));
@@ -966,7 +1138,7 @@ function animate() {
             }
         }
 
-        // Heavy Payload Missiles Update
+        // Missiles update
         for (let i = missiles.length - 1; i >= 0; i--) {
             const m = missiles[i];
             m.aliveTime += 1;
