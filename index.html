@@ -3,476 +3,423 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PIXEL DOGFIGHTER</title>
+    <title>Reyansh's Plane Game</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-        
         * {
-            box-sizing: border-box;
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
         }
 
         body {
-            overflow: hidden;
             background-color: #1a1a1a;
-            font-family: 'Press Start 2P', monospace;
-            user-select: none;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
+            font-family: 'Courier New', Courier, monospace;
+            overflow: hidden;
         }
 
-        #gameContainer {
+        #game-container {
             position: relative;
-            width: 100vw;
-            height: 100vh;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border-radius: 8px;
+            overflow: hidden;
         }
 
         canvas {
-            width: 100%;
-            height: 100%;
             display: block;
-            image-rendering: pixelated;
-            image-rendering: crisp-edges;
+            background: #87CEEB;
         }
 
-        #ui {
+        /* Controls guide overlay */
+        #controls-hint {
             position: absolute;
-            top: 24px;
-            left: 24px;
-            color: #ffffff;
-            font-size: 16px;
-            text-shadow: 2px 2px 0px #000000;
-            pointer-events: none;
-            z-index: 5;
-            letter-spacing: 2px;
-            display: flex;
-            gap: 30px;
-        }
-
-        .screen {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            background: rgba(15, 25, 35, 0.85);
-            color: #ffffff;
-            z-index: 20;
-        }
-
-        h1 {
-            font-size: 32px;
-            margin-bottom: 20px;
-            text-transform: uppercase;
-            text-shadow: 3px 3px 0px #2d3748;
-            text-align: center;
-            line-height: 1.4;
-            color: #48bb78;
-        }
-
-        p {
-            font-size: 12px;
-            margin-bottom: 30px;
-            color: #e2e8f0;
-            text-shadow: 1px 1px 0px #000000;
-            text-align: center;
-            line-height: 1.6;
-        }
-
-        button {
-            padding: 16px 28px;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255, 255, 255, 0.8);
+            font-family: sans-serif;
             font-size: 14px;
-            font-family: 'Press Start 2P', monospace;
-            color: #ffffff;
-            background: #e53e3e;
-            border: 4px solid #ffffff;
-            cursor: pointer;
-            box-shadow: 4px 4px 0px #000000;
-            transition: transform 0.1s ease;
-            text-transform: uppercase;
-        }
-
-        button:hover {
-            background: #c53030;
-            transform: translate(-2px, -2px);
-            box-shadow: 6px 6px 0px #000000;
-        }
-
-        #gameOverScreen {
-            display: none;
+            text-shadow: 1px 1px 2px black;
+            pointer-events: none;
         }
     </style>
 </head>
 <body>
 
-<div id="gameContainer">
-    <div id="ui">
-        <div>SCORE: <span id="score">000000</span></div>
-        <div>HP: <span id="hp">3</span></div>
-    </div>
-
-    <!-- Start Screen -->
-    <div id="startScreen" class="screen">
-        <h1>2D PIXEL DOGFIGHT</h1>
-        <p>[W/S or UP/DOWN] TO MOVE<br><br>[SPACEBAR] TO SHOOT</p>
-        <button onclick="startGame()">PRESS START</button>
-    </div>
-
-    <!-- Game Over Screen -->
-    <div id="gameOverScreen" class="screen">
-        <h1 style="color: #e53e3e; text-shadow: 3px 3px 0px #000000;">GAME OVER</h1>
-        <p>FINAL SCORE: <span id="finalScore">0</span></p>
-        <button onclick="startGame()">TRY AGAIN</button>
-    </div>
-
-    <canvas id="gameCanvas"></canvas>
+<div id="game-container">
+    <canvas id="gameCanvas" width="960" height="540"></canvas>
+    <div id="controls-hint">Controls: Arrow Keys / WASD to Move | SPACE to Shoot</div>
 </div>
 
 <script>
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
 
-    // UI Elements
-    const scoreEl = document.getElementById('score');
-    const hpEl = document.getElementById('hp');
-    const finalScoreEl = document.getElementById('finalScore');
-    const startScreen = document.getElementById('startScreen');
-    const gameOverScreen = document.getElementById('gameOverScreen');
+// Game State
+let score = 4500;
+let lives = 3;
+let health = 5;
+let stage = 1;
+let gameOver = false;
 
-    // Controls
-    const keys = { ArrowUp: false, ArrowDown: false, w: false, s: false, ' ': false };
+// Input handling
+const keys = {};
+window.addEventListener('keydown', e => keys[e.code] = true);
+window.addEventListener('keyup', e => keys[e.code] = false);
 
-    window.addEventListener('keydown', (e) => { 
-        if (e.key in keys || e.key === ' ') {
-            keys[e.key] = true; 
-        }
+// Player Object
+const player = {
+    x: 100,
+    y: 250,
+    width: 70,
+    height: 35,
+    speed: 5,
+    lastShot: 0,
+    shootDelay: 150
+};
+
+// Arrays for entities
+let bullets = [];
+let enemies = [];
+let explosions = [];
+let clouds = [];
+let mountains = [];
+
+// Initialize background scenery
+for (let i = 0; i < 5; i++) {
+    clouds.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * 180,
+        radius: 30 + Math.random() * 25,
+        speed: 0.5 + Math.random() * 0.5
     });
-    window.addEventListener('keyup', (e) => { 
-        if (e.key in keys || e.key === ' ') {
-            keys[e.key] = false; 
-        }
+}
+
+for (let i = 0; i < 4; i++) {
+    mountains.push({
+        x: i * 300,
+        width: 320,
+        height: 180 + Math.random() * 60
+    });
+}
+
+// Enemy Spawner
+let enemyTimer = 0;
+function spawnEnemy() {
+    enemies.push({
+        x: canvas.width + 50,
+        y: 80 + Math.random() * (canvas.height - 220),
+        width: 55,
+        height: 30,
+        speed: 2 + Math.random() * 2,
+        health: 2
+    });
+}
+
+// Draw Red Player Plane
+function drawPlayer() {
+    ctx.save();
+    ctx.translate(player.x, player.y);
+
+    // Main Body (Red)
+    ctx.fillStyle = '#D32F2F';
+    ctx.beginPath();
+    ctx.ellipse(20, 15, 35, 12, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Wings
+    ctx.fillStyle = '#B71C1C';
+    ctx.beginPath();
+    ctx.ellipse(15, 15, 12, 30, -0.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Cockpit
+    ctx.fillStyle = '#81D4FA';
+    ctx.beginPath();
+    ctx.ellipse(25, 10, 10, 6, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Tail Fin
+    ctx.fillStyle = '#B71C1C';
+    ctx.beginPath();
+    ctx.moveTo(-10, 10);
+    ctx.lineTo(-25, -5);
+    ctx.lineTo(-15, 12);
+    ctx.closePath();
+    ctx.fill();
+
+    // Muzzle Fire animation when holding space
+    if (keys['Space']) {
+        ctx.fillStyle = '#FF9800';
+        ctx.beginPath();
+        ctx.arc(58, 15, 6 + Math.random() * 4, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    ctx.restore();
+}
+
+// Draw Gray Enemy Biplane
+function drawEnemy(enemy) {
+    ctx.save();
+    ctx.translate(enemy.x, enemy.y);
+
+    // Fuselage
+    ctx.fillStyle = '#546E7A';
+    ctx.fillRect(0, 8, 45, 12);
+
+    // Top & Bottom Wings (Biplane)
+    ctx.fillStyle = '#37474F';
+    ctx.fillRect(10, -2, 30, 5);
+    ctx.fillRect(10, 22, 30, 5);
+
+    // Wing Struts
+    ctx.strokeStyle = '#263238';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(15, 3); ctx.lineTo(15, 22);
+    ctx.moveTo(35, 3); ctx.lineTo(35, 22);
+    ctx.stroke();
+
+    // Red Sun Emblem
+    ctx.fillStyle = '#D32F2F';
+    ctx.beginPath();
+    ctx.arc(25, 0, 3, 0, Math.PI * 2);
+    ctx.arc(25, 24, 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+}
+
+// Main Game Loop
+function update() {
+    if (gameOver) return;
+
+    // Movement Controls
+    if ((keys['ArrowUp'] || keys['KeyW']) && player.y > 50) player.y -= player.speed;
+    if ((keys['ArrowDown'] || keys['KeyS']) && player.y < canvas.height - 100) player.y += player.speed;
+    if ((keys['ArrowLeft'] || keys['KeyA']) && player.x > 30) player.x -= player.speed;
+    if ((keys['ArrowRight'] || keys['KeyD']) && player.x < canvas.width - 100) player.x += player.speed;
+
+    // Shooting
+    const now = Date.now();
+    if (keys['Space'] && now - player.lastShot > player.shootDelay) {
+        bullets.push({
+            x: player.x + 55,
+            y: player.y + 15,
+            speed: 12
+        });
+        player.lastShot = now;
+    }
+
+    // Update Bullets
+    bullets.forEach((b, index) => {
+        b.x += b.speed;
+        if (b.x > canvas.width) bullets.splice(index, 1);
     });
 
-    // Internal Pixel Resolution
-    const GAME_WIDTH = 480;
-    const GAME_HEIGHT = 270;
-
-    function resizeCanvas() {
-        canvas.width = GAME_WIDTH;
-        canvas.height = GAME_HEIGHT;
-    }
-    resizeCanvas();
-
-    // Game State variables
-    let gameRunning = false;
-    let score = 0;
-    let frameCount = 0;
-    let lastShootFrame = 0;
-
-    // Entities
-    let player = {
-        x: 40,
-        y: GAME_HEIGHT / 2 - 10,
-        width: 24,
-        height: 12,
-        speed: 2.5,
-        hp: 3
-    };
-
-    let playerBullets = [];
-    let enemies = [];
-    let enemyBullets = [];
-    let clouds = [];
-    let mountains = [];
-
-    // Background Setup
-    function initBackground() {
-        clouds = [];
-        mountains = [];
-
-        for (let i = 0; i < 5; i++) {
-            clouds.push({
-                x: Math.random() * GAME_WIDTH,
-                y: Math.random() * (GAME_HEIGHT / 2 - 40),
-                width: 30 + Math.random() * 30,
-                speed: 0.3 + Math.random() * 0.3
-            });
-        }
-
-        for (let i = 0; i < 7; i++) {
-            mountains.push({
-                x: i * 80,
-                height: 40 + Math.random() * 30,
-                width: 90
-            });
-        }
+    // Spawn Enemies
+    enemyTimer++;
+    if (enemyTimer > 80) {
+        spawnEnemy();
+        enemyTimer = 0;
     }
 
-    function spawnEnemy() {
-        const y = Math.floor(Math.random() * (GAME_HEIGHT - 70)) + 20;
-        enemies.push({
-            x: GAME_WIDTH,
-            y: y,
-            width: 22,
-            height: 12,
-            speed: 1.2 + Math.random() * 0.8,
-            hp: 2,
-            lastShot: frameCount
-        });
-    }
+    // Update Enemies & Collision
+    enemies.forEach((enemy, eIndex) => {
+        enemy.x -= enemy.speed;
 
-    function startGame() {
-        enemies = [];
-        playerBullets = [];
-        enemyBullets = [];
-        
-        player.y = GAME_HEIGHT / 2 - 10;
-        player.hp = 3;
-        score = 0;
-        frameCount = 0;
-        lastShootFrame = 0;
-        
-        scoreEl.textContent = '000000';
-        hpEl.textContent = player.hp;
+        // Collision with player bullets
+        bullets.forEach((bullet, bIndex) => {
+            if (
+                bullet.x > enemy.x &&
+                bullet.x < enemy.x + enemy.width &&
+                bullet.y > enemy.y &&
+                bullet.y < enemy.y + enemy.height
+            ) {
+                enemy.health--;
+                bullets.splice(bIndex, 1);
 
-        initBackground();
-
-        startScreen.style.display = 'none';
-        gameOverScreen.style.display = 'none';
-        gameRunning = true;
-
-        requestAnimationFrame(gameLoop);
-    }
-
-    function endGame() {
-        gameRunning = false;
-        finalScoreEl.textContent = score;
-        gameOverScreen.style.display = 'flex';
-    }
-
-    function isColliding(a, b) {
-        return (
-            a.x < b.x + b.width &&
-            a.x + a.width > b.x &&
-            a.y < b.y + b.height &&
-            a.y + a.height > b.y
-        );
-    }
-
-    function update() {
-        frameCount++;
-        scoreEl.textContent = String(score).padStart(6, '0');
-        hpEl.textContent = player.hp;
-
-        // Player Movement
-        if (keys.ArrowUp || keys.w) player.y -= player.speed;
-        if (keys.ArrowDown || keys.s) player.y += player.speed;
-
-        // Bound player inside sky area
-        if (player.y < 10) player.y = 10;
-        if (player.y > GAME_HEIGHT - 40) player.y = GAME_HEIGHT - 40;
-
-        // Player Shooting (Cooldown: 12 frames)
-        if (keys[' '] && frameCount - lastShootFrame > 12) {
-            playerBullets.push({
-                x: player.x + player.width,
-                y: player.y + player.height / 2 - 1,
-                width: 6,
-                height: 2,
-                speed: 5
-            });
-            lastShootFrame = frameCount;
-        }
-
-        // Parallax Clouds
-        clouds.forEach(c => {
-            c.x -= c.speed;
-            if (c.x + c.width < 0) {
-                c.x = GAME_WIDTH;
-                c.y = Math.random() * (GAME_HEIGHT / 2 - 40);
-            }
-        });
-
-        // Parallax Mountains
-        mountains.forEach(m => {
-            m.x -= 0.6;
-            if (m.x + m.width < 0) {
-                m.x = GAME_WIDTH;
-                m.height = 40 + Math.random() * 30;
-            }
-        });
-
-        // Spawn Enemy Planes
-        if (frameCount % Math.max(40, 120 - Math.floor(score / 100)) === 0) {
-            spawnEnemy();
-        }
-
-        // Update Player Bullets
-        for (let i = playerBullets.length - 1; i >= 0; i--) {
-            let b = playerBullets[i];
-            b.x += b.speed;
-
-            if (b.x > GAME_WIDTH) {
-                playerBullets.splice(i, 1);
-                continue;
-            }
-
-            // Check hit against enemy NPCs
-            for (let j = enemies.length - 1; j >= 0; j--) {
-                let e = enemies[j];
-                if (isColliding(b, e)) {
-                    e.hp--;
-                    playerBullets.splice(i, 1);
-
-                    if (e.hp <= 0) {
-                        enemies.splice(j, 1);
-                        score += 100;
-                    }
-                    break;
+                if (enemy.health <= 0) {
+                    // Trigger Explosion
+                    explosions.push({
+                        x: enemy.x + enemy.width / 2,
+                        y: enemy.y + enemy.height / 2,
+                        radius: 10,
+                        maxRadius: 35,
+                        text: "KABOOM!"
+                    });
+                    score += 100;
+                    enemies.splice(eIndex, 1);
                 }
             }
-        }
+        });
 
-        // Update Enemies & Enemy Bullets
-        for (let j = enemies.length - 1; j >= 0; j--) {
-            let e = enemies[j];
-            e.x -= e.speed;
-
-            // Enemy NPC Shooting AI (shoots every 90-120 frames)
-            if (frameCount - e.lastShot > 90 + Math.random() * 30 && e.x > player.x + 50) {
-                enemyBullets.push({
-                    x: e.x,
-                    y: e.y + e.height / 2 - 1,
-                    width: 5,
-                    height: 2,
-                    speed: 3.5
-                });
-                e.lastShot = frameCount;
-            }
-
-            // Player ramming enemy plane
-            if (isColliding(player, e)) {
-                player.hp--;
-                enemies.splice(j, 1);
-                if (player.hp <= 0) endGame();
-                continue;
-            }
-
-            // Remove off-screen enemies
-            if (e.x + e.width < 0) {
-                enemies.splice(j, 1);
+        // Collision with player
+        if (
+            player.x < enemy.x + enemy.width &&
+            player.x + player.width > enemy.x &&
+            player.y < enemy.y + enemy.height &&
+            player.y + player.height > enemy.y
+        ) {
+            explosions.push({
+                x: enemy.x,
+                y: enemy.y,
+                radius: 20,
+                maxRadius: 30,
+                text: "HIT!"
+            });
+            enemies.splice(eIndex, 1);
+            health--;
+            if (health <= 0) {
+                lives--;
+                health = 5;
+                if (lives <= 0) gameOver = true;
             }
         }
 
-        // Update Enemy Bullets
-        for (let k = enemyBullets.length - 1; k >= 0; k--) {
-            let eb = enemyBullets[k];
-            eb.x -= eb.speed;
+        // Remove off-screen enemies
+        if (enemy.x < -60) enemies.splice(eIndex, 1);
+    });
 
-            // Check hit on Player
-            if (isColliding(eb, player)) {
-                player.hp--;
-                enemyBullets.splice(k, 1);
-                if (player.hp <= 0) endGame();
-                continue;
-            }
+    // Background scrolling
+    mountains.forEach(m => {
+        m.x -= 1;
+        if (m.x + m.width < 0) m.x = canvas.width;
+    });
 
-            if (eb.x < 0) {
-                enemyBullets.splice(k, 1);
-            }
+    clouds.forEach(c => {
+        c.x -= c.speed;
+        if (c.x < -50) c.x = canvas.width + 50;
+    });
+}
+
+function render() {
+    // 1. Sky & Sea Background
+    ctx.fillStyle = '#7AC5CD';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Sea
+    ctx.fillStyle = '#2E7D32';
+    ctx.fillRect(0, canvas.height - 140, canvas.width, 140);
+    ctx.fillStyle = '#1565C0';
+    ctx.fillRect(0, canvas.height - 90, canvas.width, 90);
+
+    // 2. Mountains Scenery
+    ctx.fillStyle = '#4CAF50';
+    mountains.forEach(m => {
+        ctx.beginPath();
+        ctx.moveTo(m.x, canvas.height - 90);
+        ctx.lineTo(m.x + m.width / 2, canvas.height - m.height);
+        ctx.lineTo(m.x + m.width, canvas.height - 90);
+        ctx.closePath();
+        ctx.fill();
+    });
+
+    // 3. Clouds
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+    clouds.forEach(c => {
+        ctx.beginPath();
+        ctx.arc(c.x, c.y, c.radius, 0, Math.PI * 2);
+        ctx.arc(c.x + 20, c.y - 10, c.radius * 0.7, 0, Math.PI * 2);
+        ctx.arc(c.x + 35, c.y, c.radius * 0.8, 0, Math.PI * 2);
+        ctx.fill();
+    });
+
+    // 4. Render Player & Enemies
+    drawPlayer();
+    enemies.forEach(drawEnemy);
+
+    // 5. Render Bullets
+    bullets.forEach(b => {
+        ctx.fillStyle = '#FF5722';
+        ctx.beginPath();
+        ctx.ellipse(b.x, b.y, 8, 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#FFEB3B';
+        ctx.beginPath();
+        ctx.ellipse(b.x - 2, b.y, 5, 2, 0, 0, Math.PI * 2);
+        ctx.fill();
+    });
+
+    // 6. Explosions
+    explosions.forEach((exp, index) => {
+        ctx.save();
+        ctx.fillStyle = '#FF3D00';
+        ctx.beginPath();
+        ctx.arc(exp.x, exp.y, exp.radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#FFEA00';
+        ctx.beginPath();
+        ctx.arc(exp.x, exp.y, exp.radius * 0.6, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Explosion Text (KABOOM!)
+        ctx.fillStyle = '#FFD700';
+        ctx.strokeStyle = '#8B0000';
+        ctx.lineWidth = 3;
+        ctx.font = 'bold 22px Arial';
+        ctx.strokeText(exp.text, exp.x - 45, exp.y - exp.radius - 5);
+        ctx.fillText(exp.text, exp.x - 45, exp.y - exp.radius - 5);
+        ctx.restore();
+
+        exp.radius += 2;
+        if (exp.radius > exp.maxRadius) {
+            explosions.splice(index, 1);
         }
+    });
+
+    // 7. TOP HUD (Matching the exact layout from image)
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+    ctx.fillRect(10, 10, 430, 40);
+
+    ctx.font = 'bold 20px "Courier New", monospace';
+    ctx.fillStyle = '#FFFFFF';
+    ctx.shadowColor = 'black';
+    ctx.shadowBlur = 4;
+    
+    // Left HUD: Title & Stage
+    ctx.fillText(`REYANSH'S PLANEGAME - STAGE ${stage}`, 20, 36);
+
+    // Right HUD: Score & Lives
+    const formattedScore = String(score).padStart(6, '0');
+    ctx.fillText(`SCORE: ${formattedScore} | LIVES: ${lives}`, canvas.width - 380, 36);
+
+    // Health Hearts
+    let hearts = '';
+    for (let i = 0; i < health; i++) hearts += '💚';
+    ctx.fillText(`HEALTH: ${hearts}`, canvas.width - 380, 65);
+
+    ctx.shadowBlur = 0;
+
+    // Game Over Overlay
+    if (gameOver) {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = '#FF5252';
+        ctx.font = 'bold 48px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 20);
+
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = '20px Arial';
+        ctx.fillText('Refresh the page to play again', canvas.width / 2, canvas.height / 2 + 30);
     }
+}
 
-    function draw() {
-        // 1. Sky Gradient
-        let skyGrad = ctx.createLinearGradient(0, 0, 0, GAME_HEIGHT);
-        skyGrad.addColorStop(0, '#63b3ed');
-        skyGrad.addColorStop(0.7, '#ebf8ff');
-        skyGrad.addColorStop(1, '#38a169');
-        ctx.fillStyle = skyGrad;
-        ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+function gameLoop() {
+    update();
+    render();
+    requestAnimationFrame(gameLoop);
+}
 
-        // 2. Clouds
-        ctx.fillStyle = '#ffffff';
-        clouds.forEach(c => {
-            ctx.fillRect(Math.floor(c.x), Math.floor(c.y), c.width, 10);
-            ctx.fillRect(Math.floor(c.x + 4), Math.floor(c.y - 4), c.width - 8, 6);
-        });
-
-        // 3. Mountains
-        ctx.fillStyle = '#718096';
-        mountains.forEach(m => {
-            ctx.beginPath();
-            ctx.moveTo(Math.floor(m.x), GAME_HEIGHT - 20);
-            ctx.lineTo(Math.floor(m.x + m.width / 2), GAME_HEIGHT - 20 - m.height);
-            ctx.lineTo(Math.floor(m.x + m.width), GAME_HEIGHT - 20);
-            ctx.fill();
-        });
-
-        // 4. Ground
-        ctx.fillStyle = '#2f855a';
-        ctx.fillRect(0, GAME_HEIGHT - 20, GAME_WIDTH, 6);
-        ctx.fillStyle = '#744210';
-        ctx.fillRect(0, GAME_HEIGHT - 14, GAME_WIDTH, 14);
-
-        // 5. Draw Player Plane (Red)
-        const px = Math.floor(player.x);
-        const py = Math.floor(player.y);
-
-        ctx.fillStyle = '#e53e3e';
-        ctx.fillRect(px, py + 4, 20, 5);
-        ctx.fillStyle = '#63b3ed';
-        ctx.fillRect(px + 10, py + 2, 5, 3);
-        ctx.fillStyle = '#edf2f7';
-        ctx.fillRect(px + 8, py, 4, 12);
-        ctx.fillStyle = '#9b2c2c';
-        ctx.fillRect(px, py + 1, 4, 4);
-
-        // 6. Draw NPC Enemy Planes (Dark Gray/Green Camo)
-        enemies.forEach(e => {
-            const ex = Math.floor(e.x);
-            const ey = Math.floor(e.y);
-
-            // Fuselage
-            ctx.fillStyle = '#2d3748';
-            ctx.fillRect(ex, ey + 4, 20, 5);
-            // Cockpit
-            ctx.fillStyle = '#e53e3e';
-            ctx.fillRect(ex + 6, ey + 2, 4, 3);
-            // Wings
-            ctx.fillStyle = '#4a5568';
-            ctx.fillRect(ex + 10, ey, 4, 12);
-            // Tail
-            ctx.fillStyle = '#1a202c';
-            ctx.fillRect(ex + 18, ey + 1, 4, 4);
-        });
-
-        // 7. Draw Player Bullets (Bright Yellow/Red)
-        ctx.fillStyle = '#f6e05e';
-        playerBullets.forEach(b => {
-            ctx.fillRect(Math.floor(b.x), Math.floor(b.y), b.width, b.height);
-        });
-
-        // 8. Draw Enemy Bullets (Orange/Red)
-        ctx.fillStyle = '#dd6b20';
-        enemyBullets.forEach(eb => {
-            ctx.fillRect(Math.floor(eb.x), Math.floor(eb.y), eb.width, eb.height);
-        });
-    }
-
-    function gameLoop() {
-        if (!gameRunning) return;
-        update();
-        draw();
-        requestAnimationFrame(gameLoop);
-    }
+gameLoop();
 </script>
+
 </body>
 </html>
