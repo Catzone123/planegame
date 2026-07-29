@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reyansh's Minecraft Plane Game - Fixed</title>
+    <title>Reyansh's Minecraft Plane Game - Ultimate Edition</title>
     <style>
         * {
             margin: 0;
@@ -22,7 +22,7 @@
             display: block;
         }
 
-        /* Minecraft-Style HUD Overlay */
+        /* HUD Overlay */
         #hud {
             position: absolute;
             top: 15px;
@@ -30,22 +30,60 @@
             right: 15px;
             pointer-events: none;
             color: #ffffff;
-            font-size: 18px;
+            font-size: 16px;
             font-weight: bold;
             text-shadow: 2px 2px 0px #000;
         }
 
         .hud-panel {
-            background: rgba(0, 0, 0, 0.6);
+            background: rgba(0, 0, 0, 0.65);
             border: 3px solid #3c3c3c;
-            padding: 8px 16px;
+            padding: 8px 14px;
             display: flex;
             justify-content: space-between;
+            align-items: center;
             margin-bottom: 6px;
         }
 
         #flight-status {
             color: #ffeb3b;
+        }
+
+        /* Interactive Engine Button */
+        #engine-btn {
+            pointer-events: auto;
+            background: #ff3333;
+            color: white;
+            border: 2px solid #fff;
+            padding: 4px 10px;
+            font-weight: bold;
+            font-family: inherit;
+            cursor: pointer;
+            border-radius: 4px;
+            text-shadow: 1px 1px 0 #000;
+        }
+
+        #engine-btn.active {
+            background: #4caf50;
+        }
+
+        /* Mini-Map Radar */
+        #map-container {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 140px;
+            height: 140px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 3px solid #555;
+            border-radius: 50%;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        #minimapCanvas {
+            width: 100%;
+            height: 100%;
         }
 
         #crosshair {
@@ -75,7 +113,7 @@
             transform: translateX(-50%);
             color: #fff;
             font-size: 13px;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.75);
             border: 2px solid #555;
             padding: 8px 16px;
             text-align: center;
@@ -89,28 +127,34 @@
 
 <div id="game-container">
     <div id="hud">
-        <div class="hud-panel">
-            <span>REYANSH'S PLANEGAME - STAGE 1 [FPV]</span>
+        <div class="hud-panel" style="width: calc(100% - 160px);">
+            <span>REYANSH'S PLANEGAME [ULTIMATE]</span>
             <span>SCORE: <span id="score">004500</span> | LIVES: <span id="lives">3</span></span>
         </div>
-        <div id="flight-status" class="hud-panel">
-            <span>STATUS: <span id="status-text">TAKING OFF</span></span>
-            <span>LANDING GEAR: <span id="gear-status">DOWN 🛞</span></span>
+        <div id="flight-status" class="hud-panel" style="width: calc(100% - 160px);">
+            <span>ENGINE: <button id="engine-btn">OFF [E]</button></span>
+            <span>ALTITUDE: <span id="alt-meter">0</span>m</span>
+            <span>GEAR: <span id="gear-status">DOWN 🛞</span></span>
             <span>HEALTH: <span id="health">💚💚💚💚💚</span></span>
         </div>
+    </div>
+
+    <!-- Mini-Map Radar -->
+    <div id="map-container">
+        <canvas id="minimapCanvas" width="140" height="140"></canvas>
     </div>
 
     <div id="crosshair"></div>
 
     <div id="controls-overlay">
-        🕹️ <b>Controls:</b> <b>W/S</b> or <b>Up/Down</b> (Pitch Up/Down) | <b>A/D</b> or <b>Left/Right</b> (Steer/Roll) | <b>G</b> (Landing Gear) | <b>SPACE</b> (Shoot Fireballs)
+        🕹️ <b>Controls:</b> <b>E</b> (Engine On/Off) | <b>W/S</b> (Pitch Up/Down) | <b>A/D</b> (Roll/Turn) | <b>G</b> (Landing Gear) | <b>SPACE</b> (Fire)
     </div>
 </div>
 
 <script>
 // --- SCENE & CAMERA SETUP ---
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x7ec0ee); // Minecraft Sky Blue
+scene.background = new THREE.Color(0x7ec0ee);
 scene.fog = new THREE.Fog(0x7ec0ee, 100, 350);
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -141,15 +185,13 @@ const redMat    = mat(0xd32f2f);
 const darkMat   = mat(0x222222);
 const glassMat  = new THREE.MeshLambertMaterial({ color: 0x99d9ea, transparent: true, opacity: 0.5 });
 
-// --- PLAYER PLANE & COCKPIT ---
+// --- COCKPIT & PLAYER PLANE ---
 const plane = new THREE.Group();
 
-// Dashboard
 const dash = new THREE.Mesh(new THREE.BoxGeometry(3, 1, 1.2), woodMat);
 dash.position.set(0, -0.6, -1);
 plane.add(dash);
 
-// Windshield Frame
 const leftFrame = new THREE.Mesh(new THREE.BoxGeometry(0.15, 1.8, 2), ironMat);
 leftFrame.position.set(-1.4, 0.2, -0.8);
 const rightFrame = leftFrame.clone();
@@ -160,37 +202,43 @@ const glassPanel = new THREE.Mesh(new THREE.BoxGeometry(2.6, 1.6, 0.1), glassMat
 glassPanel.position.set(0, 0.3, -1.8);
 plane.add(glassPanel);
 
-// Landing Gear Group
+// Landing Gear
 const landingGearGroup = new THREE.Group();
-const strutGeo = new THREE.BoxGeometry(0.2, 1.2, 0.2);
 const wheelGeo = new THREE.BoxGeometry(0.6, 0.6, 0.3);
-
 const leftWheel = new THREE.Mesh(wheelGeo, darkMat);
 leftWheel.position.set(-1.2, -1.6, -0.5);
 const rightWheel = leftWheel.clone();
 rightWheel.position.x = 1.2;
-
 landingGearGroup.add(leftWheel, rightWheel);
 plane.add(landingGearGroup);
 
 scene.add(plane);
-
-// Lock FPV Camera to Pilot Seat
 camera.position.set(0, 0.2, 0);
 plane.add(camera);
 
-// --- AIRPORT RUNWAY & TERRAIN ---
+// --- AIRPORTS & TERRAIN ---
+const GROUND_Y = -10;
 const terrainGroup = new THREE.Group();
 const cubeGeo = new THREE.BoxGeometry(4, 4, 4);
-const GROUND_Y = -10;
 
-for (let x = -80; x <= 80; x += 4) {
-    for (let z = -400; z <= 100; z += 4) {
-        let isRunway = (x >= -12 && x <= 12);
-        let isStripe = (x === 0 && (Math.abs(z) % 16 < 8));
+// Defined Airport Locations (X, Z) with Short Runways
+const airports = [
+    { x: 0, z: 40 },
+    { x: -150, z: -300 },
+    { x: 180, z: -600 }
+];
 
-        let m = isRunway ? (isStripe ? stripeMat : runwayMat) : grassMat;
-        let y = isRunway ? GROUND_Y : GROUND_Y + Math.floor(Math.sin(x * 0.05) * Math.cos(z * 0.05) * 2) * 4;
+function isInsideRunway(x, z) {
+    return airports.some(ap => Math.abs(x - ap.x) <= 12 && Math.abs(z - ap.z) <= 60);
+}
+
+for (let x = -250; x <= 250; x += 4) {
+    for (let z = -700; z <= 150; z += 4) {
+        let inRunway = isInsideRunway(x, z);
+        let isStripe = inRunway && (x % 8 === 0) && (Math.abs(z) % 12 < 6);
+
+        let m = inRunway ? (isStripe ? stripeMat : runwayMat) : grassMat;
+        let y = inRunway ? GROUND_Y : GROUND_Y + Math.floor(Math.sin(x * 0.05) * Math.cos(z * 0.05) * 2) * 4;
 
         const block = new THREE.Mesh(cubeGeo, m);
         block.position.set(x, y, z);
@@ -199,20 +247,17 @@ for (let x = -80; x <= 80; x += 4) {
 }
 scene.add(terrainGroup);
 
-// Initial Position on Runway
+// Initial Position on Runway 1
 plane.position.set(0, GROUND_Y + 3.8, 40);
 
-// --- NPC ENEMY BIPLANES ---
+// --- NPC ENEMIES ---
 const enemies = [];
 
 function spawnEnemy() {
     const enemy = new THREE.Group();
-
-    // Fuselage
     const body = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.6, 5), darkMat);
     enemy.add(body);
 
-    // Biplane Wings
     const wingGeo = new THREE.BoxGeometry(8, 0.2, 1.8);
     const topWing = new THREE.Mesh(wingGeo, ironMat);
     topWing.position.set(0, 1.2, 0);
@@ -220,15 +265,13 @@ function spawnEnemy() {
     botWing.position.set(0, -0.8, 0);
     enemy.add(topWing, botWing);
 
-    // Red Wings Insignia
     const mark = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.22, 0.8), redMat);
     mark.position.set(2.5, 1.25, 0);
     enemy.add(mark);
 
-    // Position directly ahead of player flight path
     enemy.position.set(
-        plane.position.x + (Math.random() - 0.5) * 50,
-        plane.position.y + Math.random() * 15 + 2,
+        plane.position.x + (Math.random() - 0.5) * 80,
+        plane.position.y + Math.random() * 20 + 5,
         plane.position.z - 150 - Math.random() * 100
     );
 
@@ -236,108 +279,145 @@ function spawnEnemy() {
     enemies.push(enemy);
 }
 
-// Spawn initial NPC enemies
 for (let i = 0; i < 5; i++) spawnEnemy();
 
-// --- BULLETS SYSTEM ---
+// --- BULLETS ---
 const bullets = [];
 
 function fireBullet() {
-    const bulletGeo = new THREE.BoxGeometry(0.4, 0.4, 1.2);
-    const bulletMat = new THREE.MeshBasicMaterial({ color: 0xffa500 });
-    const bullet = new THREE.Mesh(bulletGeo, bulletMat);
-
-    // Spawn bullet from plane position
+    const bullet = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 1.2), new THREE.MeshBasicMaterial({ color: 0xffa500 }));
     bullet.position.copy(plane.position);
     bullet.quaternion.copy(plane.quaternion);
-    
-    // Offset to front of cockpit
     bullet.translateZ(-2);
     bullet.translateY(-0.2);
-
     scene.add(bullet);
     bullets.push(bullet);
 }
 
-// --- KEY CONTROLS ---
-const keys = {};
+// --- ENGINE & GAME CONTROLS ---
+let engineOn = false;
+let speed = 0;
 let gearDown = true;
 let score = 4500;
 let health = 5;
+const keys = {};
+
+const engineBtn = document.getElementById('engine-btn');
+
+function toggleEngine() {
+    engineOn = !engineOn;
+    if (engineOn) {
+        engineBtn.innerText = "ON [E]";
+        engineBtn.classList.add('active');
+    } else {
+        engineBtn.innerText = "OFF [E]";
+        engineBtn.classList.remove('active');
+    }
+}
+
+engineBtn.addEventListener('click', toggleEngine);
 
 window.addEventListener('keydown', e => {
     keys[e.code] = true;
-
-    // Toggle Landing Gear
+    if (e.code === 'KeyE') toggleEngine();
     if (e.code === 'KeyG') {
         gearDown = !gearDown;
         landingGearGroup.visible = gearDown;
         document.getElementById('gear-status').innerText = gearDown ? "DOWN 🛞" : "RETRACTED ✈️";
     }
-
-    // Space to Shoot
-    if (e.code === 'Space') {
-        fireBullet();
-    }
+    if (e.code === 'Space') fireBullet();
 });
 
-window.addEventListener('keyup', e => {
-    keys[e.code] = false;
-});
+window.addEventListener('keyup', e => keys[e.code] = false);
+
+// --- MINI-MAP RADAR RENDERER ---
+const mapCanvas = document.getElementById('minimapCanvas');
+const mapCtx = mapCanvas.getContext('2d');
+
+function drawMiniMap() {
+    mapCtx.clearRect(0, 0, 140, 140);
+
+    const cx = 70;
+    const cy = 70;
+    const scale = 0.3;
+
+    // Draw Airports on Radar
+    mapCtx.fillStyle = '#ffffff';
+    airports.forEach(ap => {
+        let mx = cx + (ap.x - plane.position.x) * scale;
+        let my = cy + (ap.z - plane.position.z) * scale;
+        mapCtx.fillRect(mx - 3, my - 6, 6, 12);
+    });
+
+    // Draw Enemies on Radar (Red dots)
+    mapCtx.fillStyle = '#ff3333';
+    enemies.forEach(e => {
+        let ex = cx + (e.position.x - plane.position.x) * scale;
+        let ey = cy + (e.position.z - plane.position.z) * scale;
+        mapCtx.beginPath();
+        mapCtx.arc(ex, ey, 3, 0, Math.PI * 2);
+        mapCtx.fill();
+    });
+
+    // Draw Player (Green Arrow in Center)
+    mapCtx.fillStyle = '#00ffcc';
+    mapCtx.beginPath();
+    mapCtx.arc(cx, cy, 4, 0, Math.PI * 2);
+    mapCtx.fill();
+}
 
 // --- MAIN GAME LOOP ---
-let forwardSpeed = 1.2;
-
 function animate() {
     requestAnimationFrame(animate);
 
-    // 1. PITCH CONTROL (W / S or Up / Down)
-    if (keys['KeyW'] || keys['ArrowUp']) {
-        plane.rotation.x = THREE.MathUtils.lerp(plane.rotation.x, -0.3, 0.05); // Pitch Up
-    } else if (keys['KeyS'] || keys['ArrowDown']) {
-        plane.rotation.x = THREE.MathUtils.lerp(plane.rotation.x, 0.3, 0.05);  // Pitch Down
+    // Speed / Engine Physics
+    if (engineOn) {
+        speed = THREE.MathUtils.lerp(speed, 1.3, 0.03);
     } else {
-        plane.rotation.x = THREE.MathUtils.lerp(plane.rotation.x, 0, 0.05);    // Level Out
+        speed = THREE.MathUtils.lerp(speed, 0, 0.02);
     }
 
-    // 2. ROLL / STEER CONTROL (A / D or Left / Right)
-    if (keys['KeyA'] || keys['ArrowLeft']) {
-        plane.rotation.z = THREE.MathUtils.lerp(plane.rotation.z, 0.4, 0.08);
-        plane.rotation.y += 0.015; // Turn Left
-    } else if (keys['KeyD'] || keys['ArrowRight']) {
-        plane.rotation.z = THREE.MathUtils.lerp(plane.rotation.z, -0.4, 0.08);
-        plane.rotation.y -= 0.015; // Turn Right
-    } else {
-        plane.rotation.z = THREE.MathUtils.lerp(plane.rotation.z, 0, 0.05);
+    // Controls Pitch / Roll
+    if (speed > 0.3) {
+        if (keys['KeyW'] || keys['ArrowUp']) {
+            plane.rotation.x = THREE.MathUtils.lerp(plane.rotation.x, -0.3, 0.05);
+        } else if (keys['KeyS'] || keys['ArrowDown']) {
+            plane.rotation.x = THREE.MathUtils.lerp(plane.rotation.x, 0.3, 0.05);
+        } else {
+            plane.rotation.x = THREE.MathUtils.lerp(plane.rotation.x, 0, 0.05);
+        }
+
+        if (keys['KeyA'] || keys['ArrowLeft']) {
+            plane.rotation.z = THREE.MathUtils.lerp(plane.rotation.z, 0.4, 0.08);
+            plane.rotation.y += 0.015;
+        } else if (keys['KeyD'] || keys['ArrowRight']) {
+            plane.rotation.z = THREE.MathUtils.lerp(plane.rotation.z, -0.4, 0.08);
+            plane.rotation.y -= 0.015;
+        } else {
+            plane.rotation.z = THREE.MathUtils.lerp(plane.rotation.z, 0, 0.05);
+        }
     }
 
-    // 3. MOVE PLANE FORWARD IN 3D DIRECTION
-    const forward = new THREE.Vector3(0, 0, -forwardSpeed);
-    forward.applyQuaternion(plane.quaternion);
+    // Move Forward
+    const forward = new THREE.Vector3(0, 0, -speed).applyQuaternion(plane.quaternion);
     plane.position.add(forward);
 
-    // 4. LANDING & GROUND ALTITUDE CHECK
+    // Altitude Calculation
+    const altitude = Math.max(0, Math.floor((plane.position.y - (GROUND_Y + 3.8)) * 2));
+    document.getElementById('alt-meter').innerText = altitude;
+
+    // Ground Collision
     const minAltitude = GROUND_Y + (gearDown ? 3.8 : 2.0);
     if (plane.position.y <= minAltitude) {
         plane.position.y = minAltitude;
-        if (plane.rotation.x > 0) plane.rotation.x = 0; // Stop pitching down into runway
-
-        if (!gearDown) {
-            document.getElementById('status-text').innerText = "💥 CRASHED! (NO LANDING GEAR)";
-        } else {
-            document.getElementById('status-text').innerText = "TOUCHDOWN ON RUNWAY 🛬";
-        }
-    } else {
-        document.getElementById('status-text').innerText = "AIRBORNE IN FLIGHT ☁️";
+        if (plane.rotation.x > 0) plane.rotation.x = 0;
     }
 
-    // 5. UPDATE BULLETS
+    // Update Bullets
     for (let i = bullets.length - 1; i >= 0; i--) {
         const b = bullets[i];
-        const bForward = new THREE.Vector3(0, 0, -3.0).applyQuaternion(b.quaternion);
-        b.position.add(bForward);
+        b.position.add(new THREE.Vector3(0, 0, -3.0).applyQuaternion(b.quaternion));
 
-        // Check bullet hit on NPC Enemies
         enemies.forEach((enemy, eIdx) => {
             if (b.position.distanceTo(enemy.position) < 4.0) {
                 scene.remove(enemy);
@@ -347,7 +427,7 @@ function animate() {
 
                 score += 100;
                 document.getElementById('score').innerText = String(score).padStart(6, '0');
-                spawnEnemy(); // Respawn enemy ahead
+                spawnEnemy();
             }
         });
 
@@ -357,11 +437,10 @@ function animate() {
         }
     }
 
-    // 6. UPDATE NPC ENEMIES & RECYCLE
+    // Update Enemies & Recycle
     enemies.forEach((enemy, eIdx) => {
-        enemy.position.z += 0.3; // NPC flight speed
+        enemy.position.z += 0.3;
 
-        // Collision with player
         if (enemy.position.distanceTo(plane.position) < 4.5) {
             health--;
             document.getElementById('health').innerText = '💚'.repeat(Math.max(0, health));
@@ -372,19 +451,16 @@ function animate() {
             if (health <= 0) location.reload();
         }
 
-        // Respawn NPC if it passes behind player
         if (enemy.position.z > plane.position.z + 30) {
             enemy.position.set(
-                plane.position.x + (Math.random() - 0.5) * 60,
+                plane.position.x + (Math.random() - 0.5) * 80,
                 plane.position.y + Math.random() * 10,
                 plane.position.z - 200
             );
         }
     });
 
-    // Keep terrain tracking endless relative to player
-    terrainGroup.position.z = plane.position.z - (plane.position.z % 4);
-
+    drawMiniMap();
     renderer.render(scene, camera);
 }
 
