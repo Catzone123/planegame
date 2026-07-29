@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reyansh's Plane Game</title>
+    <title>Reyansh's 3D Plane Game</title>
     <style>
         * {
             margin: 0;
@@ -12,413 +12,406 @@
         }
 
         body {
-            background-color: #1a1a1a;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            font-family: 'Courier New', Courier, monospace;
             overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #000;
+            user-select: none;
         }
 
         #game-container {
+            width: 100vw;
+            height: 100vh;
             position: relative;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            border-radius: 8px;
-            overflow: hidden;
         }
 
-        canvas {
-            display: block;
-            background: #87CEEB;
-        }
-
-        /* Controls guide overlay */
-        #controls-hint {
+        /* 3D HUD Overlay */
+        #hud {
             position: absolute;
-            bottom: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            color: rgba(255, 255, 255, 0.8);
-            font-family: sans-serif;
-            font-size: 14px;
-            text-shadow: 1px 1px 2px black;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            color: #ffffff;
+            font-family: monospace;
+            font-size: 22px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
             pointer-events: none;
         }
+
+        .hud-panel {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(4px);
+        }
+
+        #controls-overlay {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #fff;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            pointer-events: none;
+            text-shadow: 1px 1px 2px black;
+        }
+
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            transform: translate(-50%, -50%);
+            border: 2px solid rgba(255, 255, 255, 0.7);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        #crosshair::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 4px;
+            height: 4px;
+            background: red;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+        }
+
+        #game-over {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            color: #ff4444;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 48px;
+            font-weight: bold;
+        }
+
+        #game-over button {
+            margin-top: 20px;
+            padding: 12px 24px;
+            font-size: 20px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background: #ff4444;
+            color: white;
+            font-weight: bold;
+        }
     </style>
+    <!-- Three.js 3D Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
 <div id="game-container">
-    <canvas id="gameCanvas" width="960" height="540"></canvas>
-    <div id="controls-hint">Controls: Arrow Keys / WASD to Move | SPACE to Shoot</div>
+    <div id="hud">
+        <div class="hud-panel">REYANSH'S PLANEGAME - STAGE 1</div>
+        <div class="hud-panel">SCORE: <span id="score">004500</span> | LIVES: <span id="lives">3</span></div>
+        <div class="hud-panel">HEALTH: <span id="health">❤️❤️❤️❤️❤️</span></div>
+    </div>
+
+    <div id="crosshair"></div>
+
+    <div id="controls-overlay">
+        🎮 Controls: <b>W/S</b> or <b>Up/Down</b> (Pitch) | <b>A/D</b> or <b>Left/Right</b> (Roll/Turn) | <b>SPACE</b> (Fire Guns)
+    </div>
+
+    <div id="game-over">
+        <div>GAME OVER</div>
+        <button onclick="location.reload()">PLAY AGAIN</button>
+    </div>
 </div>
 
 <script>
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
+// --- GAME SETUP & THREE.JS INITIALIZATION ---
+const container = document.getElementById('game-container');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87ceeb); // Sky blue
+scene.fog = new THREE.FogExp2(0x87ceeb, 0.003);
 
-// Game State
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+container.appendChild(renderer.domElement);
+
+// --- LIGHTING ---
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+scene.add(ambientLight);
+
+const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+dirLight.position.set(100, 200, 100);
+dirLight.castShadow = true;
+scene.add(dirLight);
+
+// --- GAME STATE ---
 let score = 4500;
 let lives = 3;
 let health = 5;
-let stage = 1;
-let gameOver = false;
+let isGameOver = false;
 
-// Input handling
+// --- CONTROLS ---
 const keys = {};
 window.addEventListener('keydown', e => keys[e.code] = true);
 window.addEventListener('keyup', e => keys[e.code] = false);
 
-// Player Object
-const player = {
-    x: 100,
-    y: 250,
-    width: 70,
-    height: 35,
-    speed: 5,
-    lastShot: 0,
-    shootDelay: 150
-};
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
 
-// Arrays for entities
-let bullets = [];
-let enemies = [];
-let explosions = [];
-let clouds = [];
-let mountains = [];
+// --- TERRAIN CREATION ---
+const terrainGroup = new THREE.Group();
+const islandGeo = new THREE.PlaneGeometry(1000, 2000, 64, 64);
+islandGeo.rotateX(-Math.PI / 2);
 
-// Initialize background scenery
-for (let i = 0; i < 5; i++) {
-    clouds.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * 180,
-        radius: 30 + Math.random() * 25,
-        speed: 0.5 + Math.random() * 0.5
-    });
+// Add height variation for 3D mountains
+const pos = islandGeo.attributes.position;
+for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i);
+    const z = pos.getZ(i);
+    if (x < 100 && x > -300) {
+        const y = Math.sin(x * 0.02) * Math.cos(z * 0.02) * 40 + Math.sin(z * 0.01) * 30;
+        pos.setY(i, Math.max(0, y));
+    }
 }
+islandGeo.computeVertexNormals();
 
-for (let i = 0; i < 4; i++) {
-    mountains.push({
-        x: i * 300,
-        width: 320,
-        height: 180 + Math.random() * 60
-    });
-}
+const islandMat = new THREE.MeshLambertMaterial({ color: 0x4caf50, flatShading: true });
+const terrain = new THREE.Mesh(islandGeo, islandMat);
+terrainGroup.add(terrain);
 
-// Enemy Spawner
-let enemyTimer = 0;
-function spawnEnemy() {
-    enemies.push({
-        x: canvas.width + 50,
-        y: 80 + Math.random() * (canvas.height - 220),
-        width: 55,
-        height: 30,
-        speed: 2 + Math.random() * 2,
-        health: 2
-    });
-}
+// Water Base
+const waterGeo = new THREE.PlaneGeometry(2000, 2000);
+waterGeo.rotateX(-Math.PI / 2);
+const waterMat = new THREE.MeshLambertMaterial({ color: 0x1e88e5, transparent: true, opacity: 0.8 });
+const water = new THREE.Mesh(waterGeo, waterMat);
+water.position.y = -2;
+terrainGroup.add(water);
 
-// Draw Red Player Plane
-function drawPlayer() {
-    ctx.save();
-    ctx.translate(player.x, player.y);
+scene.add(terrainGroup);
 
-    // Main Body (Red)
-    ctx.fillStyle = '#D32F2F';
-    ctx.beginPath();
-    ctx.ellipse(20, 15, 35, 12, 0, 0, Math.PI * 2);
-    ctx.fill();
+// --- BUILD PLAYER 3D PLANE (Red Monoplane) ---
+function createPlayerPlane() {
+    const plane = new THREE.Group();
 
-    // Wings
-    ctx.fillStyle = '#B71C1C';
-    ctx.beginPath();
-    ctx.ellipse(15, 15, 12, 30, -0.2, 0, Math.PI * 2);
-    ctx.fill();
+    // Body
+    const bodyGeo = new THREE.ConeGeometry(1.2, 6, 8);
+    bodyGeo.rotateX(Math.PI / 2);
+    const redMat = new THREE.MeshLambertMaterial({ color: 0xd32f2f });
+    const body = new THREE.Mesh(bodyGeo, redMat);
+    plane.add(body);
 
-    // Cockpit
-    ctx.fillStyle = '#81D4FA';
-    ctx.beginPath();
-    ctx.ellipse(25, 10, 10, 6, 0, 0, Math.PI * 2);
-    ctx.fill();
+    // Main Wing
+    const wingGeo = new THREE.BoxGeometry(9, 0.1, 1.8);
+    const wingMat = new THREE.MeshLambertMaterial({ color: 0xb71c1c });
+    const wing = new THREE.Mesh(wingGeo, wingMat);
+    wing.position.set(0, 0, 0.5);
+    plane.add(wing);
 
     // Tail Fin
-    ctx.fillStyle = '#B71C1C';
-    ctx.beginPath();
-    ctx.moveTo(-10, 10);
-    ctx.lineTo(-25, -5);
-    ctx.lineTo(-15, 12);
-    ctx.closePath();
-    ctx.fill();
+    const tailGeo = new THREE.BoxGeometry(0.1, 1.5, 1);
+    const tail = new THREE.Mesh(tailGeo, wingMat);
+    tail.position.set(0, 0.8, -2.5);
+    plane.add(tail);
 
-    // Muzzle Fire animation when holding space
-    if (keys['Space']) {
-        ctx.fillStyle = '#FF9800';
-        ctx.beginPath();
-        ctx.arc(58, 15, 6 + Math.random() * 4, 0, Math.PI * 2);
-        ctx.fill();
-    }
+    // Cockpit
+    const glassGeo = new THREE.SphereGeometry(0.7, 8, 8);
+    const glassMat = new THREE.MeshPhongMaterial({ color: 0x81d4fa, transparent: true, opacity: 0.7 });
+    const glass = new THREE.Mesh(glassGeo, glassMat);
+    glass.position.set(0, 0.5, 0.5);
+    glass.scale.set(0.8, 0.8, 1.5);
+    plane.add(glass);
 
-    ctx.restore();
+    plane.position.set(0, 40, 0);
+    return plane;
 }
 
-// Draw Gray Enemy Biplane
-function drawEnemy(enemy) {
-    ctx.save();
-    ctx.translate(enemy.x, enemy.y);
+const player = createPlayerPlane();
+scene.add(player);
+
+// --- ENEMY CREATION ---
+const enemies = [];
+function createEnemyPlane() {
+    const enemy = new THREE.Group();
 
     // Fuselage
-    ctx.fillStyle = '#546E7A';
-    ctx.fillRect(0, 8, 45, 12);
+    const bodyGeo = new THREE.BoxGeometry(1, 1, 4);
+    const grayMat = new THREE.MeshLambertMaterial({ color: 0x546e7a });
+    const body = new THREE.Mesh(bodyGeo, grayMat);
+    enemy.add(body);
 
-    // Top & Bottom Wings (Biplane)
-    ctx.fillStyle = '#37474F';
-    ctx.fillRect(10, -2, 30, 5);
-    ctx.fillRect(10, 22, 30, 5);
+    // Biplane Wings
+    const wingGeo = new THREE.BoxGeometry(7, 0.1, 1.2);
+    const darkMat = new THREE.MeshLambertMaterial({ color: 0x37474f });
+    const topWing = new THREE.Mesh(wingGeo, darkMat);
+    topWing.position.set(0, 0.8, 0.5);
+    const botWing = new THREE.Mesh(wingGeo, darkMat);
+    botWing.position.set(0, -0.4, 0.5);
+    enemy.add(topWing, botWing);
 
-    // Wing Struts
-    ctx.strokeStyle = '#263238';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(15, 3); ctx.lineTo(15, 22);
-    ctx.moveTo(35, 3); ctx.lineTo(35, 22);
-    ctx.stroke();
+    enemy.position.set(
+        (Math.random() - 0.5) * 80,
+        25 + Math.random() * 30,
+        player.position.z - 300 - Math.random() * 200
+    );
 
-    // Red Sun Emblem
-    ctx.fillStyle = '#D32F2F';
-    ctx.beginPath();
-    ctx.arc(25, 0, 3, 0, Math.PI * 2);
-    ctx.arc(25, 24, 3, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.restore();
+    scene.add(enemy);
+    enemies.push(enemy);
 }
 
-// Main Game Loop
-function update() {
-    if (gameOver) return;
+// Spawn initial enemies
+for(let i = 0; i < 5; i++) createEnemyPlane();
 
-    // Movement Controls
-    if ((keys['ArrowUp'] || keys['KeyW']) && player.y > 50) player.y -= player.speed;
-    if ((keys['ArrowDown'] || keys['KeyS']) && player.y < canvas.height - 100) player.y += player.speed;
-    if ((keys['ArrowLeft'] || keys['KeyA']) && player.x > 30) player.x -= player.speed;
-    if ((keys['ArrowRight'] || keys['KeyD']) && player.x < canvas.width - 100) player.x += player.speed;
+// --- BULLETS & EXPLOSIONS ---
+const bullets = [];
+let lastShot = 0;
+
+function shoot() {
+    const now = Date.now();
+    if (now - lastShot < 150) return;
+    lastShot = now;
+
+    // Dual wing lasers
+    [-2, 2].forEach(offset => {
+        const bulletGeo = new THREE.CylinderGeometry(0.1, 0.1, 2);
+        bulletGeo.rotateX(Math.PI / 2);
+        const bulletMat = new THREE.MeshBasicMaterial({ color: 0xffeb3b });
+        const bullet = new THREE.Mesh(bulletGeo, bulletMat);
+
+        bullet.position.set(player.position.x + offset, player.position.y, player.position.z - 2);
+        scene.add(bullet);
+        bullets.push(bullet);
+    });
+}
+
+// --- GAME LOOP & CONTROLS ---
+let forwardSpeed = 0.8;
+
+function animate() {
+    if (isGameOver) return;
+    requestAnimationFrame(animate);
+
+    // Forward constant movement
+    player.position.z -= forwardSpeed;
+    terrainGroup.position.z = player.position.z - 500; // Endless terrain tracking
+
+    // Flight Dynamics Controls
+    if (keys['KeyW'] || keys['ArrowUp']) {
+        player.position.y -= 0.4; // Pitch Down
+        player.rotation.x = Math.max(player.rotation.x - 0.03, -0.4);
+    } else if (keys['KeyS'] || keys['ArrowDown']) {
+        player.position.y += 0.4; // Pitch Up
+        player.rotation.x = Math.min(player.rotation.x + 0.03, 0.4);
+    } else {
+        player.rotation.x *= 0.9; // Level out
+    }
+
+    if (keys['KeyA'] || keys['ArrowLeft']) {
+        player.position.x -= 0.5; // Roll Left
+        player.rotation.z = Math.min(player.rotation.z + 0.05, 0.6);
+        player.rotation.y += 0.01;
+    } else if (keys['KeyD'] || keys['ArrowRight']) {
+        player.position.x += 0.5; // Roll Right
+        player.rotation.z = Math.max(player.rotation.z - 0.05, -0.6);
+        player.rotation.y -= 0.01;
+    } else {
+        player.rotation.z *= 0.9; // Level out
+    }
+
+    // Clamp altitude
+    player.position.y = Math.max(5, Math.min(80, player.position.y));
+    player.position.x = Math.max(-60, Math.min(60, player.position.x));
 
     // Shooting
-    const now = Date.now();
-    if (keys['Space'] && now - player.lastShot > player.shootDelay) {
-        bullets.push({
-            x: player.x + 55,
-            y: player.y + 15,
-            speed: 12
-        });
-        player.lastShot = now;
-    }
+    if (keys['Space']) shoot();
 
     // Update Bullets
-    bullets.forEach((b, index) => {
-        b.x += b.speed;
-        if (b.x > canvas.width) bullets.splice(index, 1);
-    });
+    for (let i = bullets.length - 1; i >= 0; i--) {
+        const b = bullets[i];
+        b.position.z -= 3;
 
-    // Spawn Enemies
-    enemyTimer++;
-    if (enemyTimer > 80) {
-        spawnEnemy();
-        enemyTimer = 0;
-    }
+        // Bullet collision with enemies
+        enemies.forEach((enemy, eIdx) => {
+            if (b.position.distanceTo(enemy.position) < 4) {
+                scene.remove(enemy);
+                enemies.splice(eIdx, 1);
+                scene.remove(b);
+                bullets.splice(i, 1);
 
-    // Update Enemies & Collision
-    enemies.forEach((enemy, eIndex) => {
-        enemy.x -= enemy.speed;
-
-        // Collision with player bullets
-        bullets.forEach((bullet, bIndex) => {
-            if (
-                bullet.x > enemy.x &&
-                bullet.x < enemy.x + enemy.width &&
-                bullet.y > enemy.y &&
-                bullet.y < enemy.y + enemy.height
-            ) {
-                enemy.health--;
-                bullets.splice(bIndex, 1);
-
-                if (enemy.health <= 0) {
-                    // Trigger Explosion
-                    explosions.push({
-                        x: enemy.x + enemy.width / 2,
-                        y: enemy.y + enemy.height / 2,
-                        radius: 10,
-                        maxRadius: 35,
-                        text: "KABOOM!"
-                    });
-                    score += 100;
-                    enemies.splice(eIndex, 1);
-                }
+                score += 100;
+                document.getElementById('score').innerText = String(score).padStart(6, '0');
+                createEnemyPlane(); // Respawn new enemy ahead
             }
         });
 
+        if (b && b.position.z < player.position.z - 300) {
+            scene.remove(b);
+            bullets.splice(i, 1);
+        }
+    }
+
+    // Update Enemies & Recycle
+    enemies.forEach(enemy => {
+        // Simple enemy AI behavior
+        enemy.position.z += 0.2; 
+
         // Collision with player
-        if (
-            player.x < enemy.x + enemy.width &&
-            player.x + player.width > enemy.x &&
-            player.y < enemy.y + enemy.height &&
-            player.y + player.height > enemy.y
-        ) {
-            explosions.push({
-                x: enemy.x,
-                y: enemy.y,
-                radius: 20,
-                maxRadius: 30,
-                text: "HIT!"
-            });
-            enemies.splice(eIndex, 1);
+        if (enemy.position.distanceTo(player.position) < 3.5) {
             health--;
+            document.getElementById('health').innerText = '❤️'.repeat(Math.max(0, health));
+            enemy.position.z = player.position.z - 400; // Reset enemy position
+            
             if (health <= 0) {
                 lives--;
                 health = 5;
-                if (lives <= 0) gameOver = true;
+                document.getElementById('lives').innerText = lives;
+                document.getElementById('health').innerText = '❤️'.repeat(health);
+                
+                if (lives <= 0) {
+                    isGameOver = true;
+                    document.getElementById('game-over').style.display = 'flex';
+                }
             }
         }
 
-        // Remove off-screen enemies
-        if (enemy.x < -60) enemies.splice(eIndex, 1);
-    });
-
-    // Background scrolling
-    mountains.forEach(m => {
-        m.x -= 1;
-        if (m.x + m.width < 0) m.x = canvas.width;
-    });
-
-    clouds.forEach(c => {
-        c.x -= c.speed;
-        if (c.x < -50) c.x = canvas.width + 50;
-    });
-}
-
-function render() {
-    // 1. Sky & Sea Background
-    ctx.fillStyle = '#7AC5CD';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Sea
-    ctx.fillStyle = '#2E7D32';
-    ctx.fillRect(0, canvas.height - 140, canvas.width, 140);
-    ctx.fillStyle = '#1565C0';
-    ctx.fillRect(0, canvas.height - 90, canvas.width, 90);
-
-    // 2. Mountains Scenery
-    ctx.fillStyle = '#4CAF50';
-    mountains.forEach(m => {
-        ctx.beginPath();
-        ctx.moveTo(m.x, canvas.height - 90);
-        ctx.lineTo(m.x + m.width / 2, canvas.height - m.height);
-        ctx.lineTo(m.x + m.width, canvas.height - 90);
-        ctx.closePath();
-        ctx.fill();
-    });
-
-    // 3. Clouds
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
-    clouds.forEach(c => {
-        ctx.beginPath();
-        ctx.arc(c.x, c.y, c.radius, 0, Math.PI * 2);
-        ctx.arc(c.x + 20, c.y - 10, c.radius * 0.7, 0, Math.PI * 2);
-        ctx.arc(c.x + 35, c.y, c.radius * 0.8, 0, Math.PI * 2);
-        ctx.fill();
-    });
-
-    // 4. Render Player & Enemies
-    drawPlayer();
-    enemies.forEach(drawEnemy);
-
-    // 5. Render Bullets
-    bullets.forEach(b => {
-        ctx.fillStyle = '#FF5722';
-        ctx.beginPath();
-        ctx.ellipse(b.x, b.y, 8, 3, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#FFEB3B';
-        ctx.beginPath();
-        ctx.ellipse(b.x - 2, b.y, 5, 2, 0, 0, Math.PI * 2);
-        ctx.fill();
-    });
-
-    // 6. Explosions
-    explosions.forEach((exp, index) => {
-        ctx.save();
-        ctx.fillStyle = '#FF3D00';
-        ctx.beginPath();
-        ctx.arc(exp.x, exp.y, exp.radius, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = '#FFEA00';
-        ctx.beginPath();
-        ctx.arc(exp.x, exp.y, exp.radius * 0.6, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Explosion Text (KABOOM!)
-        ctx.fillStyle = '#FFD700';
-        ctx.strokeStyle = '#8B0000';
-        ctx.lineWidth = 3;
-        ctx.font = 'bold 22px Arial';
-        ctx.strokeText(exp.text, exp.x - 45, exp.y - exp.radius - 5);
-        ctx.fillText(exp.text, exp.x - 45, exp.y - exp.radius - 5);
-        ctx.restore();
-
-        exp.radius += 2;
-        if (exp.radius > exp.maxRadius) {
-            explosions.splice(index, 1);
+        // Respawn enemy if passed player
+        if (enemy.position.z > player.position.z + 20) {
+            enemy.position.set(
+                (Math.random() - 0.5) * 80,
+                25 + Math.random() * 30,
+                player.position.z - 350
+            );
         }
     });
 
-    // 7. TOP HUD (Matching the exact layout from image)
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
-    ctx.fillRect(10, 10, 430, 40);
+    // --- 3D CHASE CAMERA SYSTEM (FPV / 3rd Person Follow) ---
+    camera.position.x = player.position.x * 0.7;
+    camera.position.y = player.position.y + 4;
+    camera.position.z = player.position.z + 14;
+    camera.lookAt(player.position.x, player.position.y + 1, player.position.z - 20);
 
-    ctx.font = 'bold 20px "Courier New", monospace';
-    ctx.fillStyle = '#FFFFFF';
-    ctx.shadowColor = 'black';
-    ctx.shadowBlur = 4;
-    
-    // Left HUD: Title & Stage
-    ctx.fillText(`REYANSH'S PLANEGAME - STAGE ${stage}`, 20, 36);
-
-    // Right HUD: Score & Lives
-    const formattedScore = String(score).padStart(6, '0');
-    ctx.fillText(`SCORE: ${formattedScore} | LIVES: ${lives}`, canvas.width - 380, 36);
-
-    // Health Hearts
-    let hearts = '';
-    for (let i = 0; i < health; i++) hearts += '💚';
-    ctx.fillText(`HEALTH: ${hearts}`, canvas.width - 380, 65);
-
-    ctx.shadowBlur = 0;
-
-    // Game Over Overlay
-    if (gameOver) {
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        ctx.fillStyle = '#FF5252';
-        ctx.font = 'bold 48px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 20);
-
-        ctx.fillStyle = '#FFFFFF';
-        ctx.font = '20px Arial';
-        ctx.fillText('Refresh the page to play again', canvas.width / 2, canvas.height / 2 + 30);
-    }
+    renderer.render(scene, camera);
 }
 
-function gameLoop() {
-    update();
-    render();
-    requestAnimationFrame(gameLoop);
-}
-
-gameLoop();
+animate();
 </script>
 
 </body>
