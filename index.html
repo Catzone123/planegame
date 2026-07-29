@@ -568,7 +568,7 @@ scene.add(playerGroup);
 
 // --- CAMERA VIEW MODES ---
 const CAMERA_MODES = [
-    { name: "1ST PERSON", pos: new THREE.Vector3(0, 0.4, -0.5), look: new THREE.Vector3(0, 0.4, -10) },
+    { name: "1ST PERSON", pos: new THREE.Vector3(0, 0.85, -1.6), look: new THREE.Vector3(0, 0.85, -10) },
     { name: "3RD PERSON (CLOSE)", pos: new THREE.Vector3(0, 3.5, 12), look: new THREE.Vector3(0, 0, -5) },
     { name: "3RD PERSON (FAR)", pos: new THREE.Vector3(0, 7.0, 22), look: new THREE.Vector3(0, 0, -10) }
 ];
@@ -579,6 +579,11 @@ function updateCameraView() {
     camera.position.copy(camSetting.pos);
     camera.lookAt(camSetting.look);
     document.getElementById('camera-btn').innerText = `${camSetting.name} [C]`;
+
+    // Hide cockpit glass in 1st person to prevent visual clipping
+    if (cockpitGlass) {
+        cockpitGlass.visible = (cameraModeIdx !== 0);
+    }
 }
 
 playerGroup.add(camera);
